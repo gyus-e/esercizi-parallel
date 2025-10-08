@@ -11,12 +11,12 @@ double maxsum(int N, int LD, double *A, int NT)
 
 	omp_set_num_threads(NT);
 
-#pragma omp parallel
+	#pragma omp parallel
 	{
 		double thread_max_sum_of_roots = 0;
 		int thread_row_with_max_sum = 0;
 
-#pragma omp for
+		#pragma omp for
 		for (int i = 0; i < N; i++)
 		{
 			double sum_of_roots_row_i = 0;
@@ -32,7 +32,7 @@ double maxsum(int N, int LD, double *A, int NT)
 				thread_row_with_max_sum = i;
 			}
 		}
-#pragma omp critical
+		#pragma omp critical
 		{
 			if (max_sum_of_roots < thread_max_sum_of_roots)
 			{

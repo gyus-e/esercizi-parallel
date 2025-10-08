@@ -10,9 +10,9 @@ double maxsum(int N, int LD, double **A, int NT)
 	int row_with_max_sum = 0;
 
 	omp_set_num_threads(NT);
-#pragma omp parallel
+	#pragma omp parallel
 	{
-#pragma omp for
+		#pragma omp for
 		for (int i = 0; i < N; i++)
 		{
 			double sum_of_roots_row_i = 0;
@@ -22,7 +22,7 @@ double maxsum(int N, int LD, double **A, int NT)
 				sum_of_roots_row_i += sqrt(A[i][j]);
 			}
 
-#pragma omp critical
+			#pragma omp critical
 			{
 				if (max_sum_of_roots < sum_of_roots_row_i)
 				{
