@@ -1,0 +1,39 @@
+#include "maxsum.h"
+
+#include <stdio.h>
+#include <math.h>
+#include <omp.h>
+
+double maxsum(int N, int LD, double *A, int NT)
+{
+	double max_sum_of_roots = 0;
+	int row_with_max_sum = 0;
+
+	omp_set_num_threads(NT);
+#pragma omp parallel
+	{
+#pragma omp for
+		for (int i = 0; i < N; i++)
+		{
+			double sum_of_roots_row_i = 0;
+
+			for (int j = 0; j < N; j++)
+			{
+				sum_of_roots_row_i += sqrt(A[i * LD + j]);
+			}
+
+#pragma omp critical
+			{
+				if (max_sum_of_roots < sum_of_roots_row_i)
+				{
+					max_sum_of_roots = sum_of_roots_row_i;
+					row_with_max_sum = i;
+				}
+			}
+		}
+	}
+	printf("\n");
+	printf("max sum of roots = %f\n", max_sum_of_roots);
+	printf("in row: %d\n", row_with_max_sum);
+	return max_sum_of_roots;
+}
