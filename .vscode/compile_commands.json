@@ -1,12 +1,12 @@
 [
     {
-        "command": "gcc -c main.c -fopenmp",
-        "directory": "lez6-v3",
-        "file": "main.c"
+        "command": "gcc -c mainmaxsum.c -fopenmp",
+        "directory": "maxsum",
+        "file": "mainmaxsum.c"
     },
     {
         "command": "gcc -c maxsum.c maxsum.h -fopenmp",
-        "directory": "lez6-v3",
+        "directory": "maxsum",
         "file": "maxsum.c"
     }
 ]
