@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#PBS -N lez6
+#PBS -q studenti
+#PBS -o lez6.out
+#PBS -e lez6.err
+
+cd $PBS_O_WORKDIR
+
+echo pwd
+make -j
+./a.out
