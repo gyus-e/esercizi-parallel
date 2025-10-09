@@ -8,4 +8,4 @@ maxsum.o: maxsum.c maxsum.h
 	gcc -c maxsum.c maxsum.h -fopenmp
 
 clean:
-	rm a.out *.o
+	rm -f a.out *.o
