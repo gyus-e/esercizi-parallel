@@ -8,5 +8,5 @@
 cd $PBS_O_WORKDIR
 
 echo pwd
-make -j
+make -j CFLAGS=" -std=gnu99 -O3 -fopenmp -Wall -Wextra "
 ./a.out

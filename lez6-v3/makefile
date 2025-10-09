@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O3 -fopenmp
+CFLAGS = -O3 -fopenmp -Wall -Wextra
 LDFLAGS = -O3 -fopenmp
 LDLIBS = -lm
 
@@ -16,4 +16,4 @@ maxsum.h.gch: maxsum.h
 	$(CC) -c maxsum.h
 
 clean:
-	rm -f a.out *.o *.h.gch
+	rm -f *.out *.err *.o *.h.gch
