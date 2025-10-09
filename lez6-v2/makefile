@@ -1,11 +1,19 @@
-a.exe: main.o maxsum.o
-	gcc -o a.exe main.o maxsum.o -fopenmp -lm
+CC = gcc
+CFLAGS = -O3 -fopenmp -Wall -Wextra -std=gnu90
+LDFLAGS = -O3 -fopenmp
+LDLIBS = -lm
 
-main.o: main.c maxsum.h
-	gcc -c main.c -fopenmp
+a.out: main.o maxsum.o
+	$(CC) -o a.out main.o maxsum.o $(LDFLAGS) $(LDLIBS)
 
-maxsum.o: maxsum.c maxsum.h
-	gcc -c maxsum.c maxsum.h -fopenmp
+main.o: main.c maxsum.h.gch
+	$(CC) -c main.c $(CFLAGS)
+
+maxsum.o: maxsum.c maxsum.h.gch
+	$(CC) -c maxsum.c $(CFLAGS)
+
+maxsum.h.gch: maxsum.h
+	$(CC) -c maxsum.h
 
 clean:
-	rm a.exe *.o
+	rm -f *.out *.err *.o *.h.gch
