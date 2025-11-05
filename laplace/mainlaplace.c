@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) {
   MPI_Status status;
   double get_cur_time(), t1, t2;
   void laplace(float *, float *, float *, float *, int, int, int);
+  void laplace_nb(float *, float *, float *, float *, int, int, int);
 
   MPI_Init(&argc, &argv);
 
@@ -58,37 +59,43 @@ int main(int argc, char *argv[]) {
   printf("processo %d ha righe da %d a %d \n", myid, ifirst,
          ifirst + N / nproc - 1);
 
-  t1 = get_cur_time();
+  for (i = 0; i < 2; i++) {
 
-  laplace(A, Anew, daprev, danext, N, LD, Niter);
+    t1 = get_cur_time();
 
-  t2 = get_cur_time();
+    if (i == 0) {
+      laplace(A, Anew, daprev, danext, N, LD, Niter);
+    } else {
+      laplace_nb(A, Anew, daprev, danext, N, LD, Niter);
+    }
 
-  if (myid == 0)
-    printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
+    t2 = get_cur_time();
 
-  sleep(1);
+    if (myid == 0)
+      printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
 
-  if (myid == 0) {
-    local_row = 1;
-    printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid, A[1 * LD + 1],
-           A[1 * LD + 398]);
+    sleep(1);
+
+    if (myid == 0) {
+      local_row = 1;
+      printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid,
+             A[1 * LD + 1], A[1 * LD + 398]);
+    }
+    if (myid == nproc / 2 - 1) {
+      local_row = 199 - ifirst;
+      printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
+             A[local_row * LD + 199], A[local_row * LD + 200]);
+    }
+    if (myid == nproc / 2) {
+      local_row = 200 - ifirst;
+      printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
+             A[local_row * LD + 199], A[local_row * LD + 200]);
+    }
+    if (myid == nproc - 1) {
+      local_row = 398 - ifirst;
+      printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
+             A[local_row * LD + 1], A[local_row * LD + 398]);
+    }
   }
-  if (myid == nproc / 2 - 1) {
-    local_row = 199 - ifirst;
-    printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
-           A[local_row * LD + 199], A[local_row * LD + 200]);
-  }
-  if (myid == nproc / 2) {
-    local_row = 200 - ifirst;
-    printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
-           A[local_row * LD + 199], A[local_row * LD + 200]);
-  }
-  if (myid == nproc - 1) {
-    local_row = 398 - ifirst;
-    printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
-           A[local_row * LD + 1], A[local_row * LD + 398]);
-  }
-
   MPI_Finalize();
 }
