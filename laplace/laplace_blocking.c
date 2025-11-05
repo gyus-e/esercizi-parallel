@@ -49,7 +49,7 @@ void init_last_row(float *A, float *B, float *danext, int rows_per_proc, int N,
 
 void copy_rows(int start_row, int end_row, float *A, float *B, int N, int LD) {
   int i, j;
-  for (i = start_row; i < end_row; i++) {
+  for (i = start_row; i <= end_row; i++) {
     for (j = 1; j < N - 1; j++) {
       A[i * LD + j] = B[i * LD + j];
     }
