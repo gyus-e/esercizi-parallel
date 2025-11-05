@@ -36,10 +36,16 @@ int somma(int *A, int N) {
   prev = (rank + size - 1) % size;
   token = sum;
   for (i = 0; i < size - 1; i++) {
-    MPI_Send(&token, 1, MPI_INT, next, 10, MPI_COMM_WORLD);
-    MPI_Recv(&token, 1, MPI_INT, prev, 10, MPI_COMM_WORLD, &status);
+    if (i % 2 == 0) {
+      MPI_Send(&token, 1, MPI_INT, next, 10, MPI_COMM_WORLD);
+      MPI_Recv(&token, 1, MPI_INT, prev, 10, MPI_COMM_WORLD, &status);
+    } else {
+      MPI_Recv(&token, 1, MPI_INT, prev, 10, MPI_COMM_WORLD, &status);
+      MPI_Send(&token, 1, MPI_INT, next, 10, MPI_COMM_WORLD);
+    }
     sum += token;
   }
+}
 
-  return sum;
+return sum;
 }
