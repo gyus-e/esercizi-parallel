@@ -54,7 +54,7 @@ void init_last_row(float *A, float *B, float *danext, int rows_per_proc, int N,
 
 void copy_rows(int start_row, int end_row, float *A, float *B, int N, int LD) {
   int i, j;
-  for (i = start_row; i < end_row; i++) {
+  for (i = start_row; i <= end_row; i++) {
     for (j = 1; j < N - 1; j++) {
       A[i * LD + j] = B[i * LD + j];
     }
@@ -78,7 +78,8 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
   for (k = 0; k < Niter; k++) {
     if (myid > 0) {
-      MPI_Isend(&A[0], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &send_first);
+      MPI_Isend(&A[0 * LD], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD,
+                &send_first);
       MPI_Irecv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &recv_first);
       init_first_row(A, B, daprev, N, LD, &recv_first);
       start_row = 0;
@@ -89,7 +90,7 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     if (myid < nproc - 1) {
-      MPI_Isend(&A[rows_per_proc - 1], N, MPI_FLOAT, myid + 1, 0,
+      MPI_Isend(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, 0,
                 MPI_COMM_WORLD, &send_last);
       MPI_Irecv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &recv_last);
       init_last_row(A, B, danext, rows_per_proc, N, LD, &recv_last);

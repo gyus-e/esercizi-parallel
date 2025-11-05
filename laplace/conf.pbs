@@ -9,11 +9,14 @@
 
 cd $PBS_O_WORKDIR
 
+MPI_DIR=/usr/lib64/openmpi/1.4-gcc/bin
+
 sort -u $PBS_NODEFILE > machinefile
 NCPU=`wc -l < machinefile`
 
 echo "Il job è in esecuzione sugli $NCPU nodi:"
 cat machinefile
 
-make -j
+make CC="$MPI_DIR/mpicc" -j
+$MPI_DIR/mpiexec -np $NCPU -machinefile machinefile ./laplace_blocking.out
 $MPI_DIR/mpiexec -np $NCPU -machinefile machinefile ./laplace.out

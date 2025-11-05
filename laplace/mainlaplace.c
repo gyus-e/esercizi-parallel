@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
   int nproc, myid, prev, next;
-  int N, i, j, ifirst, iter, Niter, LD;
+  int N, i, j, ifirst, iter, Niter, LD, local_row;
   float *A, *Anew, *daprev, *danext;
   MPI_Status status;
   double get_cur_time(), t1, t2;
@@ -53,6 +53,11 @@ int main(int argc, char *argv[]) {
   if (myid == 0)
     printf("\n esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
 
+  sleep(1);
+
+  printf("processo %d ha righe da %d a %d \n", myid, ifirst,
+         ifirst + N / nproc - 1);
+
   t1 = get_cur_time();
 
   laplace(A, Anew, daprev, danext, N, LD, Niter);
@@ -63,17 +68,27 @@ int main(int argc, char *argv[]) {
     printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
 
   sleep(1);
-  if (myid == 0)
-    printf("prima  %d -->   %f  %f  \n", myid, A[1 * LD + 1], A[1 * LD + 398]);
-  if (myid == 3)
-    printf("centro %d -->   %f  %f  \n", myid, A[49 * LD + 199],
-           A[49 * LD + 200]);
-  if (myid == 4)
-    printf("centro %d -->   %f  %f  \n", myid, A[00 * LD + 199],
-           A[00 * LD + 200]);
-  if (myid == 7)
-    printf("ultima %d -->   %f  %f  \n", myid, A[48 * LD + 1],
-           A[48 * LD + 398]);
+
+  if (myid == 0) {
+    local_row = 1;
+    printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid, A[1 * LD + 1],
+           A[1 * LD + 398]);
+  }
+  if (myid == nproc / 2 - 1) {
+    local_row = 199 - ifirst;
+    printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
+           A[local_row * LD + 199], A[local_row * LD + 200]);
+  }
+  if (myid == nproc / 2) {
+    local_row = 200 - ifirst;
+    printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
+           A[local_row * LD + 199], A[local_row * LD + 200]);
+  }
+  if (myid == nproc - 1) {
+    local_row = 398 - ifirst;
+    printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
+           A[local_row * LD + 1], A[local_row * LD + 398]);
+  }
 
   MPI_Finalize();
 }
