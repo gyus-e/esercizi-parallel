@@ -96,14 +96,12 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
       MPI_Isend(&A[idx], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD,
                 &send_first);
       MPI_Irecv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &recv_first);
-      start_row = 0;
     }
 
     if (myid < nproc - 1) {
       idx = (rows_per_proc - 1) * LD;
       MPI_Isend(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &send_last);
       MPI_Irecv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &recv_last);
-      end_row = rows_per_proc - 1;
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
@@ -111,10 +109,12 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     if (myid > 0) {
+      start_row = 0;
       MPI_Wait(&recv_first, &status_send_first);
       init_first_row(A, B, daprev, N, LD);
     }
     if (myid < nproc - 1) {
+      end_row = rows_per_proc - 1;
       MPI_Wait(&recv_last, &status_send_last);
       init_last_row(A, B, danext, rows_per_proc, N, LD);
     }
