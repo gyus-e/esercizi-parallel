@@ -4,8 +4,8 @@
 #PBS -l nodes=8:ppn=8
 #PBS -l mem=2GB
 #PBS -N laplace
-#PBS -o laplace.txt
-#PBS -e laplace.err
+#PBS -o laplace_output.txt
+#PBS -e laplace_output.err
 
 cd $PBS_O_WORKDIR
 
