@@ -11,6 +11,9 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter);
 
+static void init_matrix(float *A, int N, int LD, int myid, int nproc,
+                        int ifirst);
+
 static void test_laplace(float *A, float *Anew, float *daprev, float *danext,
                          int N, int LD, int Niter, int nproc, int myid,
                          int ifirst);
@@ -23,7 +26,7 @@ static void print_results(int, int, float *, int, int, int);
 
 int main(int argc, char *argv[]) {
   int nproc, myid, prev, next;
-  int N, i, j, ifirst, iter, Niter, LD;
+  int N, ifirst, iter, Niter, LD;
   float *A, *Anew, *daprev, *danext;
   MPI_Status status;
 
@@ -38,13 +41,37 @@ int main(int argc, char *argv[]) {
   N = 400;
   Niter = 8000;
   LD = 500;
+  ifirst = myid * N / nproc;
+
   A = (float *)malloc(500 * 500 * sizeof(float));
   Anew = (float *)malloc(500 * 500 * sizeof(float));
   daprev = (float *)malloc(500 * sizeof(float));
   danext = (float *)malloc(500 * sizeof(float));
 
-  // inizializzazione matrice
+  if (myid == 0)
+    printf("\n esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
 
+  sleep(1);
+  printf("processo %d ha righe da %d a %d \n", myid, ifirst,
+         ifirst + N / nproc - 1);
+
+  init_matrix(A, N, LD, myid, nproc, ifirst);
+  sleep(1);
+  if (myid == 0)
+    printf("\nVersione bloccante\n");
+  test_laplace(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
+
+  init_matrix(A, N, LD, myid, nproc, ifirst);
+  sleep(1);
+  if (myid == 0)
+    printf("\nVersione non bloccante\n");
+  test_laplace_nb(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
+
+  MPI_Finalize();
+}
+
+void init_matrix(float *A, int N, int LD, int myid, int nproc, int ifirst) {
+  int i, j;
   for (i = 0; i < N / nproc; i++) { // tutta la matrice locale = 0
     for (j = 0; j < N; j++) {
       A[i * LD + j] = 0.;
@@ -59,31 +86,11 @@ int main(int argc, char *argv[]) {
       A[(N / nproc - 1) * LD + j] =
           N - 1 - j; // ultima riga matrice del proc id=nproc-1 da 390 a 0
 
-  ifirst = myid * N / nproc;
   for (i = 0; i < N / nproc; i++) {
     A[i * LD + 0] =
         ifirst + i; // bordo sinistro da ifirst a ilast-1 in ogni proc
     A[i * LD + N - 1] = N - 1 - A[i * LD + 0]; // A[i][0] + A[i][N-1] = 0 sempre
   }
-
-  if (myid == 0)
-    printf("\n esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
-
-  sleep(1);
-  printf("processo %d ha righe da %d a %d \n", myid, ifirst,
-         ifirst + N / nproc - 1);
-
-  sleep(1);
-  if (myid == 0)
-    printf("\nVersione bloccante\n");
-  test_laplace(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
-
-  sleep(1);
-  if (myid == 0)
-    printf("\nVersione non bloccante\n");
-  test_laplace_nb(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
-
-  MPI_Finalize();
 }
 
 void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
