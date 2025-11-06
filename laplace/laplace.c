@@ -6,8 +6,6 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter);
 
-static inline float get_B_ij(float up, float down, float left, float right);
-
 static void init_first_row(float *A, float *B, float *daprev, int N, int LD);
 
 static void init_first_row_nb(float *A, float *B, float *daprev, int N, int LD,
@@ -21,6 +19,8 @@ static void init_last_row_nb(float *A, float *B, float *danext,
                              MPI_Request *req);
 
 static void init_row_i(int i, float *A, float *B, int N, int LD);
+
+static inline float get_B_ij(float up, float down, float left, float right);
 
 static inline void copy_rows(int start_row, int end_row, float *A, float *B,
                              int N, int LD);
@@ -119,10 +119,6 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
   }
 }
 
-static inline float get_B_ij(float up, float down, float left, float right) {
-  return (up + down + left + right) * 0.25;
-}
-
 static void init_first_row(float *A, float *B, float *daprev, int N, int LD) {
   int j;
   float up, down, left, right;
@@ -199,6 +195,10 @@ static void init_row_i(int i, float *A, float *B, int N, int LD) {
 
     B[i * LD + j] = get_B_ij(up, down, left, right);
   }
+}
+
+static inline float get_B_ij(float up, float down, float left, float right) {
+  return (up + down + left + right) * 0.25;
 }
 
 static inline void copy_rows(int start_row, int end_row, float *A, float *B,
