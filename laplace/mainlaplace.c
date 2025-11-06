@@ -3,18 +3,29 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+double get_cur_time();
+
+void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
+             int Niter);
+
+void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
+                int Niter);
+
+static void test_laplace(float *A, float *Anew, float *daprev, float *danext,
+                         int N, int LD, int Niter, int nproc, int myid,
+                         int ifirst);
+
+static void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
+                            int N, int LD, int Niter, int nproc, int myid,
+                            int ifirst);
+
+static void print_results(int, int, float *, int, int, int);
+
 int main(int argc, char *argv[]) {
   int nproc, myid, prev, next;
   int N, i, j, ifirst, iter, Niter, LD;
   float *A, *Anew, *daprev, *danext;
   MPI_Status status;
-
-  void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
-                    int LD, int Niter, int nproc, int myid, int ifirst);
-
-  void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
-                       int N, int LD, int Niter, int nproc, int myid,
-                       int ifirst);
 
   MPI_Init(&argc, &argv);
 
@@ -77,11 +88,7 @@ int main(int argc, char *argv[]) {
 
 void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
                   int LD, int Niter, int nproc, int myid, int ifirst) {
-
-  void laplace(float *, float *, float *, float *, int, int, int);
-  double get_cur_time(), t1, t2;
-  void print_results(int, int, float *, int, int, int, int);
-  int local_row;
+  double t1, t2;
 
   t1 = get_cur_time();
 
@@ -92,17 +99,13 @@ void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
   if (myid == 0)
     printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
 
-  print_results(myid, nproc, A, N, LD, ifirst, local_row);
+  print_results(myid, nproc, A, N, LD, ifirst);
   sleep(1);
 }
 
 void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext, int N,
                      int LD, int Niter, int nproc, int myid, int ifirst) {
-
-  void laplace_nb(float *, float *, float *, float *, int, int, int);
-  double get_cur_time(), t1, t2;
-  void print_results(int, int, float *, int, int, int, int);
-  int local_row;
+  double t1, t2;
 
   t1 = get_cur_time();
 
@@ -115,11 +118,11 @@ void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext, int N,
 
   sleep(1);
 
-  print_results(myid, nproc, A, N, LD, ifirst, local_row);
+  print_results(myid, nproc, A, N, LD, ifirst);
 }
 
-void print_results(int myid, int nproc, float *A, int N, int LD, int ifirst,
-                   int local_row) {
+void print_results(int myid, int nproc, float *A, int N, int LD, int ifirst) {
+  int local_row;
   if (myid == 0) {
     local_row = 1;
     printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid, A[1 * LD + 1],
