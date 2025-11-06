@@ -14,10 +14,10 @@ static inline void init_last_row(float *A, float *B, float *danext,
 
 static inline void init_row_i(int i, float *A, float *B, int N, int LD);
 
-static inline float get_B_ij(float up, float down, float left, float right);
-
 static inline void copy_rows(int start_row, int end_row, float *A, float *B,
                              int N, int LD);
+
+static inline float get_B_ij(float up, float down, float left, float right);
 
 void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
              int Niter) {
@@ -152,10 +152,6 @@ static inline void init_row_i(int i, float *A, float *B, int N, int LD) {
   }
 }
 
-static inline float get_B_ij(float up, float down, float left, float right) {
-  return (up + down + left + right) * 0.25;
-}
-
 static inline void copy_rows(int start_row, int end_row, float *A, float *B,
                              int N, int LD) {
   int i, j;
@@ -164,4 +160,8 @@ static inline void copy_rows(int start_row, int end_row, float *A, float *B,
       A[i * LD + j] = B[i * LD + j];
     }
   }
+}
+
+static inline float get_B_ij(float up, float down, float left, float right) {
+  return (up + down + left + right) * 0.25;
 }
