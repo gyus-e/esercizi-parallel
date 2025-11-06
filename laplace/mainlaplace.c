@@ -70,7 +70,8 @@ int main(int argc, char *argv[]) {
   MPI_Finalize();
 }
 
-void init_matrix(float *A, int N, int LD, int myid, int nproc, int ifirst) {
+static void init_matrix(float *A, int N, int LD, int myid, int nproc,
+                        int ifirst) {
   int i, j;
   for (i = 0; i < N / nproc; i++) { // tutta la matrice locale = 0
     for (j = 0; j < N; j++) {
@@ -93,8 +94,9 @@ void init_matrix(float *A, int N, int LD, int myid, int nproc, int ifirst) {
   }
 }
 
-void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
-                  int LD, int Niter, int nproc, int myid, int ifirst) {
+static void test_laplace(float *A, float *Anew, float *daprev, float *danext,
+                         int N, int LD, int Niter, int nproc, int myid,
+                         int ifirst) {
   double t1, t2;
 
   t1 = get_cur_time();
@@ -110,8 +112,9 @@ void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
   sleep(1);
 }
 
-void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext, int N,
-                     int LD, int Niter, int nproc, int myid, int ifirst) {
+static void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
+                            int N, int LD, int Niter, int nproc, int myid,
+                            int ifirst) {
   double t1, t2;
 
   t1 = get_cur_time();
@@ -128,7 +131,8 @@ void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext, int N,
   print_results(myid, nproc, A, N, LD, ifirst);
 }
 
-void print_results(int myid, int nproc, float *A, int N, int LD, int ifirst) {
+static void print_results(int myid, int nproc, float *A, int N, int LD,
+                          int ifirst) {
   int local_row;
   if (myid == 0) {
     local_row = 1;
