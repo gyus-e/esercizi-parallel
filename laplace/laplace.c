@@ -27,7 +27,7 @@ static inline void copy_rows(int start_row, int end_row, float *A, float *B,
 
 void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
              int Niter) {
-  int i, j, k;
+  int i, k;
   int nproc, myid;
   int rows_per_proc, start_row, end_row;
   MPI_Status status;
@@ -70,7 +70,7 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter) {
-  int i, j, k;
+  int i, k;
   int nproc, myid;
   int rows_per_proc, start_row, end_row;
   MPI_Status status_send_first, status_send_last;

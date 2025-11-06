@@ -1,9 +1,20 @@
 CC = mpicc
-CFLAGS = -std=gnu90
-LDLIBS = -lm
+OPTIONS = -O3
+CFLAGS =
+LDFLAGS =
+LDLIBS =
 
-laplace.out: mainlaplace.c laplace.c c_timer.c
-	$(CC) -O3 -o laplace.out mainlaplace.c laplace.c c_timer.c
+laplace.out: mainlaplace.o laplace.o c_timer.o
+	$(CC) $(OPTIONS) -o laplace.out mainlaplace.o laplace.o c_timer.o $(LDFLAGS) $(LDLIBS)
+
+mainlaplace.o: mainlaplace.c
+	$(CC) $(OPTIONS) -c mainlaplace.c $(CFLAGS)
+
+laplace.o: laplace.c
+	$(CC) $(OPTIONS) -c laplace.c $(CFLAGS)
+
+c_timer.o: c_timer.c
+	$(CC) $(OPTIONS) -c c_timer.c $(CFLAGS)
 
 clean:
 	rm -f *.out *.o *.txt *.err

@@ -18,5 +18,4 @@ echo "Il job è in esecuzione sugli $NCPU nodi:"
 cat machinefile
 
 make CC="$MPI_DIR/mpicc" -j
-$MPI_DIR/mpiexec -np $NCPU -machinefile machinefile ./laplace_blocking.out
 $MPI_DIR/mpiexec -np $NCPU -machinefile machinefile ./laplace.out
