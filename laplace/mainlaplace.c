@@ -5,12 +5,16 @@
 
 int main(int argc, char *argv[]) {
   int nproc, myid, prev, next;
-  int N, i, j, ifirst, iter, Niter, LD, local_row;
+  int N, i, j, ifirst, iter, Niter, LD;
   float *A, *Anew, *daprev, *danext;
   MPI_Status status;
-  double get_cur_time(), t1, t2;
-  void laplace(float *, float *, float *, float *, int, int, int);
-  void laplace_nb(float *, float *, float *, float *, int, int, int);
+
+  void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
+                    int LD, int Niter, int nproc, int myid, int ifirst);
+
+  void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
+                       int N, int LD, int Niter, int nproc, int myid,
+                       int ifirst);
 
   MPI_Init(&argc, &argv);
 
@@ -59,43 +63,75 @@ int main(int argc, char *argv[]) {
   printf("processo %d ha righe da %d a %d \n", myid, ifirst,
          ifirst + N / nproc - 1);
 
-  for (i = 0; i < 2; i++) {
+  test_laplace(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
+  test_laplace_nb(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
 
-    t1 = get_cur_time();
-
-    if (i == 0) {
-      laplace(A, Anew, daprev, danext, N, LD, Niter);
-    } else {
-      laplace_nb(A, Anew, daprev, danext, N, LD, Niter);
-    }
-
-    t2 = get_cur_time();
-
-    if (myid == 0)
-      printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
-
-    sleep(1);
-
-    if (myid == 0) {
-      local_row = 1;
-      printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid,
-             A[1 * LD + 1], A[1 * LD + 398]);
-    }
-    if (myid == nproc / 2 - 1) {
-      local_row = 199 - ifirst;
-      printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
-             A[local_row * LD + 199], A[local_row * LD + 200]);
-    }
-    if (myid == nproc / 2) {
-      local_row = 200 - ifirst;
-      printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
-             A[local_row * LD + 199], A[local_row * LD + 200]);
-    }
-    if (myid == nproc - 1) {
-      local_row = 398 - ifirst;
-      printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
-             A[local_row * LD + 1], A[local_row * LD + 398]);
-    }
-  }
   MPI_Finalize();
+}
+
+void test_laplace(float *A, float *Anew, float *daprev, float *danext, int N,
+                  int LD, int Niter, int nproc, int myid, int ifirst) {
+
+  void laplace(float *, float *, float *, float *, int, int, int);
+  double get_cur_time(), t1, t2;
+  void print_results(int, int, float *, int, int, int, int);
+  int local_row;
+
+  t1 = get_cur_time();
+
+  laplace(A, Anew, daprev, danext, N, LD, Niter);
+
+  t2 = get_cur_time();
+
+  if (myid == 0)
+    printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
+
+  print_results(myid, nproc, A, N, LD, ifirst, local_row);
+  sleep(1);
+}
+
+void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext, int N,
+                     int LD, int Niter, int nproc, int myid, int ifirst) {
+
+  void laplace_nb(float *, float *, float *, float *, int, int, int);
+  double get_cur_time(), t1, t2;
+  void print_results(int, int, float *, int, int, int, int);
+  int local_row;
+
+  t1 = get_cur_time();
+
+  laplace_nb(A, Anew, daprev, danext, N, LD, Niter);
+
+  t2 = get_cur_time();
+
+  if (myid == 0)
+    printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
+
+  sleep(1);
+
+  print_results(myid, nproc, A, N, LD, ifirst, local_row);
+}
+
+void print_results(int myid, int nproc, float *A, int N, int LD, int ifirst,
+                   int local_row) {
+  if (myid == 0) {
+    local_row = 1;
+    printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid, A[1 * LD + 1],
+           A[1 * LD + 398]);
+  }
+  if (myid == nproc / 2 - 1) {
+    local_row = 199 - ifirst;
+    printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
+           A[local_row * LD + 199], A[local_row * LD + 200]);
+  }
+  if (myid == nproc / 2) {
+    local_row = 200 - ifirst;
+    printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
+           A[local_row * LD + 199], A[local_row * LD + 200]);
+  }
+  if (myid == nproc - 1) {
+    local_row = 398 - ifirst;
+    printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
+           A[local_row * LD + 1], A[local_row * LD + 398]);
+  }
 }
