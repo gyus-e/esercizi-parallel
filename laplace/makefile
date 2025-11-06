@@ -1,5 +1,5 @@
 CC = mpicc
-OPTIONS = -O3
+OPTIONS =
 CFLAGS =
 LDFLAGS =
 LDLIBS =
