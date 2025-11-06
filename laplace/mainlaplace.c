@@ -59,11 +59,17 @@ int main(int argc, char *argv[]) {
     printf("\n esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
 
   sleep(1);
-
   printf("processo %d ha righe da %d a %d \n", myid, ifirst,
          ifirst + N / nproc - 1);
 
+  sleep(1);
+  if (myid == 0)
+    printf("\nVersione bloccante\n");
   test_laplace(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
+
+  sleep(1);
+  if (myid == 0)
+    printf("\nVersione non bloccante\n");
   test_laplace_nb(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
 
   MPI_Finalize();

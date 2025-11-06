@@ -6,19 +6,13 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter);
 
-static void init_first_row(float *A, float *B, float *daprev, int N, int LD);
+static inline void init_first_row(float *A, float *B, float *daprev, int N,
+                                  int LD);
 
-static void init_first_row_nb(float *A, float *B, float *daprev, int N, int LD,
-                              MPI_Request *req);
+static inline void init_last_row(float *A, float *B, float *danext,
+                                 int rows_per_proc, int N, int LD);
 
-static void init_last_row(float *A, float *B, float *danext, int rows_per_proc,
-                          int N, int LD);
-
-static void init_last_row_nb(float *A, float *B, float *danext,
-                             int rows_per_proc, int N, int LD,
-                             MPI_Request *req);
-
-static void init_row_i(int i, float *A, float *B, int N, int LD);
+static inline void init_row_i(int i, float *A, float *B, int N, int LD);
 
 static inline float get_B_ij(float up, float down, float left, float right);
 
@@ -30,6 +24,7 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
   int i, k;
   int nproc, myid;
   int rows_per_proc, start_row, end_row;
+  int idx;
   MPI_Status status;
 
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -41,15 +36,26 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
   for (k = 0; k < Niter; k++) {
     if (myid > 0) {
-      MPI_Send(&A[0 * LD], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD);
-      MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &status);
+      idx = 0 * LD;
+      if (myid % 2 == 1) {
+        MPI_Send(&A[idx], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD);
+        MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &status);
+      } else {
+        MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &status);
+        MPI_Send(&A[idx], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD);
+      }
       start_row = 0;
     }
 
     if (myid < nproc - 1) {
-      MPI_Send(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, 0,
-               MPI_COMM_WORLD);
-      MPI_Recv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &status);
+      idx = (rows_per_proc - 1) * LD;
+      if (myid % 2 == 1) {
+        MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD);
+        MPI_Recv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &status);
+      } else {
+        MPI_Recv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &status);
+        MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD);
+      }
       end_row = rows_per_proc - 1;
     }
 
@@ -73,6 +79,7 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
   int i, k;
   int nproc, myid;
   int rows_per_proc, start_row, end_row;
+  int idx;
   MPI_Status status_send_first, status_send_last;
   MPI_Request send_first, send_last, recv_first, recv_last;
 
@@ -84,16 +91,17 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
   end_row = rows_per_proc - 2;
 
   for (k = 0; k < Niter; k++) {
+    idx = 0 * LD;
     if (myid > 0) {
-      MPI_Isend(&A[0 * LD], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD,
+      MPI_Isend(&A[idx], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD,
                 &send_first);
       MPI_Irecv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &recv_first);
       start_row = 0;
     }
 
     if (myid < nproc - 1) {
-      MPI_Isend(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, 0,
-                MPI_COMM_WORLD, &send_last);
+      idx = (rows_per_proc - 1) * LD;
+      MPI_Isend(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &send_last);
       MPI_Irecv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &recv_last);
       end_row = rows_per_proc - 1;
     }
@@ -103,10 +111,12 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     if (myid > 0) {
-      init_first_row_nb(A, B, daprev, N, LD, &recv_first);
+      MPI_Wait(&recv_first, &status_send_first);
+      init_first_row(A, B, daprev, N, LD);
     }
     if (myid < nproc - 1) {
-      init_last_row_nb(A, B, danext, rows_per_proc, N, LD, &recv_last);
+      MPI_Wait(&recv_last, &status_send_last);
+      init_last_row(A, B, danext, rows_per_proc, N, LD);
     }
 
     if (myid > 0) {
@@ -119,81 +129,31 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
   }
 }
 
-static void init_first_row(float *A, float *B, float *daprev, int N, int LD) {
+static inline void init_first_row(float *A, float *B, float *daprev, int N,
+                                  int LD) {
   int j;
-  float up, down, left, right;
-
   for (j = 1; j < N - 1; j++) {
-    up = daprev[j];
-    down = A[1 * LD + j];
-    left = A[0 * LD + (j - 1)];
-    right = A[0 * LD + (j + 1)];
-
-    B[0 * LD + j] = get_B_ij(up, down, left, right);
+    B[0 * LD + j] = get_B_ij(daprev[j], A[1 * LD + j], A[0 * LD + (j - 1)],
+                             A[0 * LD + (j + 1)]);
   }
 }
 
-static void init_first_row_nb(float *A, float *B, float *daprev, int N, int LD,
-                              MPI_Request *req) {
+static inline void init_last_row(float *A, float *B, float *danext,
+                                 int rows_per_proc, int N, int LD) {
   int j;
-  float up, down, left, right;
-  MPI_Status status;
-
-  MPI_Wait(req, &status);
   for (j = 1; j < N - 1; j++) {
-    up = daprev[j];
-    down = A[1 * LD + j];
-    left = A[0 * LD + (j - 1)];
-    right = A[0 * LD + (j + 1)];
-
-    B[0 * LD + j] = get_B_ij(up, down, left, right);
+    B[(rows_per_proc - 1) * LD + j] =
+        get_B_ij(A[(rows_per_proc - 2) * LD + j], danext[j],
+                 A[(rows_per_proc - 1) * LD + (j - 1)],
+                 A[(rows_per_proc - 1) * LD + (j + 1)]);
   }
 }
 
-static void init_last_row(float *A, float *B, float *danext, int rows_per_proc,
-                          int N, int LD) {
+static inline void init_row_i(int i, float *A, float *B, int N, int LD) {
   int j;
-  float up, down, left, right;
-
   for (j = 1; j < N - 1; j++) {
-    up = A[(rows_per_proc - 2) * LD + j];
-    down = danext[j];
-    left = A[(rows_per_proc - 1) * LD + (j - 1)];
-    right = A[(rows_per_proc - 1) * LD + (j + 1)];
-
-    B[(rows_per_proc - 1) * LD + j] = get_B_ij(up, down, left, right);
-  }
-}
-
-static void init_last_row_nb(float *A, float *B, float *danext,
-                             int rows_per_proc, int N, int LD,
-                             MPI_Request *req) {
-  int j;
-  float up, down, left, right;
-  MPI_Status status;
-
-  MPI_Wait(req, &status);
-  for (j = 1; j < N - 1; j++) {
-    up = A[(rows_per_proc - 2) * LD + j];
-    down = danext[j];
-    left = A[(rows_per_proc - 1) * LD + (j - 1)];
-    right = A[(rows_per_proc - 1) * LD + (j + 1)];
-
-    B[(rows_per_proc - 1) * LD + j] = get_B_ij(up, down, left, right);
-  }
-}
-
-static void init_row_i(int i, float *A, float *B, int N, int LD) {
-  int j;
-  float up, down, left, right;
-
-  for (j = 1; j < N - 1; j++) {
-    up = A[(i - 1) * LD + j];
-    down = A[(i + 1) * LD + j];
-    left = A[i * LD + (j - 1)];
-    right = A[i * LD + (j + 1)];
-
-    B[i * LD + j] = get_B_ij(up, down, left, right);
+    B[i * LD + j] = get_B_ij(A[(i - 1) * LD + j], A[(i + 1) * LD + j],
+                             A[i * LD + (j - 1)], A[i * LD + (j + 1)]);
   }
 }
 
