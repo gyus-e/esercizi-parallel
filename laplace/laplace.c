@@ -135,20 +135,23 @@ static inline void init_first_row(float *A, float *B, float *daprev, int N,
 
 static inline void init_last_row(float *A, float *B, float *danext,
                                  int rows_per_proc, int N, int LD) {
+  int curr_row = (rows_per_proc - 1) * LD;
+  int prev = curr_row - LD;
   int j;
-  int idx = (rows_per_proc - 1) * LD;
-  int prev = idx - LD;
   for (j = 1; j < N - 1; j++) {
-    B[(rows_per_proc - 1) * LD + j] =
-        get_B_ij(A[prev + j], danext[j], A[idx + (j - 1)], A[idx + (j + 1)]);
+    B[curr_row + j] = get_B_ij(A[prev + j], danext[j], A[curr_row + (j - 1)],
+                               A[curr_row + (j + 1)]);
   }
 }
 
 static inline void init_row_i(int i, float *A, float *B, int N, int LD) {
+  int curr_row = i * LD;
+  int prev = curr_row - LD;
+  int next = curr_row + LD;
   int j;
   for (j = 1; j < N - 1; j++) {
-    B[i * LD + j] = get_B_ij(A[(i - 1) * LD + j], A[(i + 1) * LD + j],
-                             A[i * LD + (j - 1)], A[i * LD + (j + 1)]);
+    B[curr_row + j] = get_B_ij(A[prev + j], A[next + j], A[curr_row + (j - 1)],
+                               A[curr_row + (j + 1)]);
   }
 }
 
