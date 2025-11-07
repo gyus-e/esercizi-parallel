@@ -1,5 +1,8 @@
 #include <mpi.h>
 
+#define DAPREV_TAG 1
+#define DANEXT_TAG 0
+
 void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
              int Niter);
 
@@ -24,24 +27,16 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
   for (k = 0; k < Niter; k++) {
     if (myid > 0) {
-      if (myid % 2 == 1) {
-        MPI_Send(&A[0], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD);
-        MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &status);
-      } else {
-        MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &status);
-        MPI_Send(&A[0], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD);
-      }
+      MPI_Send(&A[0], N, MPI_FLOAT, myid - 1, DANEXT_TAG, MPI_COMM_WORLD);
+      MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, DAPREV_TAG, MPI_COMM_WORLD,
+               &status);
     }
 
     if (myid < nproc - 1) {
       idx = (rows_per_proc - 1) * LD;
-      if (myid % 2 == 1) {
-        MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD);
-        MPI_Recv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &status);
-      } else {
-        MPI_Recv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &status);
-        MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD);
-      }
+      MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, DAPREV_TAG, MPI_COMM_WORLD);
+      MPI_Recv(danext, N, MPI_FLOAT, myid + 1, DANEXT_TAG, MPI_COMM_WORLD,
+               &status);
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
@@ -98,14 +93,17 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
   for (k = 0; k < Niter; k++) {
     if (myid > 0) {
-      MPI_Isend(&A[0], N, MPI_FLOAT, myid - 1, 0, MPI_COMM_WORLD, &send_first);
-      MPI_Irecv(daprev, N, MPI_FLOAT, myid - 1, 1, MPI_COMM_WORLD, &recv_first);
+      MPI_Isend(&A[0], N, MPI_FLOAT, myid - 1, DANEXT_TAG, MPI_COMM_WORLD,
+                &send_first);
+      MPI_Irecv(daprev, N, MPI_FLOAT, myid - 1, DAPREV_TAG, MPI_COMM_WORLD,
+                &recv_first);
     }
 
     if (myid < nproc - 1) {
-      MPI_Isend(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, 1,
-                MPI_COMM_WORLD, &send_last);
-      MPI_Irecv(danext, N, MPI_FLOAT, myid + 1, 0, MPI_COMM_WORLD, &recv_last);
+      MPI_Isend(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1,
+                DAPREV_TAG, MPI_COMM_WORLD, &send_last);
+      MPI_Irecv(danext, N, MPI_FLOAT, myid + 1, DANEXT_TAG, MPI_COMM_WORLD,
+                &recv_last);
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
