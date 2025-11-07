@@ -1,7 +1,7 @@
 #include <mpi.h>
 
-#define DAPREV_TAG 1
-#define DANEXT_TAG 0
+#define DAPREV_TAG 10
+#define DANEXT_TAG 20
 
 void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
              int Niter);
