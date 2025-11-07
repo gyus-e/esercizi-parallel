@@ -6,11 +6,23 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter);
 
+static inline void init_first_row(float *A, float *B, float *daprev, int N,
+                                  int LD);
+
+static inline void init_last_row(float *A, float *B, float *danext,
+                                 int rows_per_proc, int N, int LD);
+
+static inline void init_row_i(int i, float *A, float *B, int N, int LD);
+
+static inline void copy_rows(int start_row, int end_row, float *A, float *B,
+                             int N, int LD);
+
+static inline float get_B_ij(float up, float down, float left, float right);
+
 void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
              int Niter) {
-  int i, j, k;
+  int i, k;
   int nproc, myid;
-  int curr_row, prev, next;
   int rows_per_proc, start_row, end_row;
   int idx;
   MPI_Status status;
@@ -45,46 +57,26 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
-      curr_row = i * LD;
-      prev = curr_row - LD;
-      next = curr_row + LD;
-      for (j = 1; j < N - 1; j++) {
-        B[curr_row + j] =
-            0.25 * (A[prev + j] + A[next + j] + A[curr_row + (j - 1)] +
-                    A[curr_row + (j + 1)]);
-      }
+      init_row_i(i, A, B, N, LD);
     }
 
     if (myid > 0) {
       start_row = 0;
-      for (j = 1; j < N - 1; j++) {
-        B[j] = 0.25 * (daprev[j] + A[LD + j] + A[j - 1] + A[j + 1]);
-      }
+      init_first_row(A, B, daprev, N, LD);
     }
     if (myid < nproc - 1) {
       end_row = rows_per_proc - 1;
-      curr_row = (rows_per_proc - 1) * LD;
-      prev = curr_row - LD;
-      for (j = 1; j < N - 1; j++) {
-        B[curr_row + j] =
-            0.25 * (A[prev + j] + danext[j] + A[curr_row + (j - 1)] +
-                    A[curr_row + (j + 1)]);
-      }
+      init_last_row(A, B, danext, rows_per_proc, N, LD);
     }
 
-    for (i = start_row; i <= end_row; i++) {
-      for (j = 1; j < N - 1; j++) {
-        A[i * LD + j] = B[i * LD + j];
-      }
-    }
+    copy_rows(start_row, end_row, A, B, N, LD);
   }
 }
 
 void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
                 int Niter) {
-  int i, j, k;
+  int i, k;
   int nproc, myid;
-  int curr_row, prev, next;
   int rows_per_proc, start_row, end_row;
   MPI_Status status_send_first, status_send_last;
   MPI_Request send_first, send_last, recv_first, recv_last;
@@ -109,33 +101,18 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
-      curr_row = i * LD;
-      prev = curr_row - LD;
-      next = curr_row + LD;
-      for (j = 1; j < N - 1; j++) {
-        B[curr_row + j] =
-            0.25 * (A[prev + j] + A[next + j] + A[curr_row + (j - 1)] +
-                    A[curr_row + (j + 1)]);
-      }
+      init_row_i(i, A, B, N, LD);
     }
 
     if (myid > 0) {
       start_row = 0;
       MPI_Wait(&recv_first, &status_send_first);
-      for (j = 1; j < N - 1; j++) {
-        B[j] = 0.25 * (daprev[j] + A[LD + j] + A[j - 1] + A[j + 1]);
-      }
+      init_first_row(A, B, daprev, N, LD);
     }
     if (myid < nproc - 1) {
       end_row = rows_per_proc - 1;
       MPI_Wait(&recv_last, &status_send_last);
-      curr_row = (rows_per_proc - 1) * LD;
-      prev = curr_row - LD;
-      for (j = 1; j < N - 1; j++) {
-        B[curr_row + j] =
-            0.25 * (A[prev + j] + danext[j] + A[curr_row + (j - 1)] +
-                    A[curr_row + (j + 1)]);
-      }
+      init_last_row(A, B, danext, rows_per_proc, N, LD);
     }
 
     if (myid > 0) {
@@ -144,11 +121,50 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
     if (myid < nproc - 1) {
       MPI_Wait(&send_last, &status_send_last);
     }
+    copy_rows(start_row, end_row, A, B, N, LD);
+  }
+}
 
-    for (i = start_row; i <= end_row; i++) {
-      for (j = 1; j < N - 1; j++) {
-        A[i * LD + j] = B[i * LD + j];
-      }
+static inline void init_first_row(float *A, float *B, float *daprev, int N,
+                                  int LD) {
+  int j;
+  for (j = 1; j < N - 1; j++) {
+    B[j] = get_B_ij(daprev[j], A[LD + j], A[j - 1], A[j + 1]);
+  }
+}
+
+static inline void init_last_row(float *A, float *B, float *danext,
+                                 int rows_per_proc, int N, int LD) {
+  int curr_row = (rows_per_proc - 1) * LD;
+  int prev = curr_row - LD;
+  int j;
+  for (j = 1; j < N - 1; j++) {
+    B[curr_row + j] = get_B_ij(A[prev + j], danext[j], A[curr_row + (j - 1)],
+                               A[curr_row + (j + 1)]);
+  }
+}
+
+static inline void init_row_i(int i, float *A, float *B, int N, int LD) {
+  int curr_row = i * LD;
+  int prev = curr_row - LD;
+  int next = curr_row + LD;
+  int j;
+  for (j = 1; j < N - 1; j++) {
+    B[curr_row + j] = get_B_ij(A[prev + j], A[next + j], A[curr_row + (j - 1)],
+                               A[curr_row + (j + 1)]);
+  }
+}
+
+static inline void copy_rows(int start_row, int end_row, float *A, float *B,
+                             int N, int LD) {
+  int i, j;
+  for (i = start_row; i <= end_row; i++) {
+    for (j = 1; j < N - 1; j++) {
+      A[i * LD + j] = B[i * LD + j];
     }
   }
+}
+
+static inline float get_B_ij(float up, float down, float left, float right) {
+  return (up + down + left + right) * 0.25;
 }
