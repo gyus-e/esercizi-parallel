@@ -128,9 +128,9 @@ void laplace_nb(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
     if (myid < nproc - 1) {
       end_row = rows_per_proc - 1;
-      MPI_Wait(&recv_last, &status_send_last);
       curr_row = (rows_per_proc - 1) * LD;
       prev = curr_row - LD;
+      MPI_Wait(&recv_last, &status_send_last);
       for (j = 1; j < N - 1; j++) {
         B[curr_row + j] =
             0.25 * (A[prev + j] + danext[j] + A[curr_row + (j - 1)] +
