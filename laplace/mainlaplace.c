@@ -35,9 +35,6 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-  printf("hello from %d di %d processi \n", myid, nproc);
-  sleep(1);
-
   N = 400;
   Niter = 8000;
   LD = 500;
@@ -49,22 +46,24 @@ int main(int argc, char *argv[]) {
   danext = (float *)malloc(500 * sizeof(float));
 
   if (myid == 0)
-    printf("\n esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
-
+    printf("Esecuzione con N = %d  e %d iterazioni\n\n", N, Niter);
   sleep(1);
   printf("processo %d ha righe da %d a %d \n", myid, ifirst,
          ifirst + N / nproc - 1);
+  sleep(1);
 
   init_matrix(A, N, LD, myid, nproc, ifirst);
-  sleep(1);
   if (myid == 0)
     printf("\nVersione bloccante\n");
+  sleep(1);
   test_laplace(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
 
+  sleep(2);
+
   init_matrix(A, N, LD, myid, nproc, ifirst);
-  sleep(1);
   if (myid == 0)
     printf("\nVersione non bloccante\n");
+  sleep(1);
   test_laplace_nb(A, Anew, daprev, danext, N, LD, Niter, nproc, myid, ifirst);
 
   MPI_Finalize();
@@ -107,9 +106,9 @@ static void test_laplace(float *A, float *Anew, float *daprev, float *danext,
 
   if (myid == 0)
     printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
+  sleep(1);
 
   print_results(myid, nproc, A, N, LD, ifirst);
-  sleep(1);
 }
 
 static void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
@@ -125,8 +124,7 @@ static void test_laplace_nb(float *A, float *Anew, float *daprev, float *danext,
 
   if (myid == 0)
     printf("con %d processi, il tempo e' %f\n", nproc, t2 - t1);
-
-  sleep(1);
+  sleep(2);
 
   print_results(myid, nproc, A, N, LD, ifirst);
 }
@@ -136,22 +134,22 @@ static void print_results(int myid, int nproc, float *A, int N, int LD,
   int local_row;
   if (myid == 0) {
     local_row = 1;
-    printf("prima  %d -->   A[1][1]=%f  A[1][398]=%f  \n", myid, A[1 * LD + 1],
-           A[1 * LD + 398]);
+    printf("prima  %d -->   A[1][1]=%f \t A[1][398]=%f  \n", myid,
+           A[1 * LD + 1], A[1 * LD + 398]);
   }
-  if (myid == nproc / 2 - 1) {
+  if ((nproc == 1) || (myid == nproc * 0.5 - 1)) {
     local_row = 199 - ifirst;
-    printf("centro %d -->   A[199][199]=%f  A[199][200]=%f  \n", myid,
+    printf("centro %d -->   A[199][199]=%f \t A[199][200]=%f  \n", myid,
            A[local_row * LD + 199], A[local_row * LD + 200]);
   }
-  if (myid == nproc / 2) {
+  if ((nproc == 1) || (myid == nproc * 0.5)) {
     local_row = 200 - ifirst;
-    printf("centro %d -->   A[200][199]=%f  A[200][200]=%f  \n", myid,
+    printf("centro %d -->   A[200][199]=%f \t A[200][200]=%f  \n", myid,
            A[local_row * LD + 199], A[local_row * LD + 200]);
   }
   if (myid == nproc - 1) {
     local_row = 398 - ifirst;
-    printf("ultima %d -->   A[398][1]=%f  A[398][398]=%f  \n", myid,
+    printf("ultima %d -->   A[398][1]=%f \t A[398][398]=%f  \n", myid,
            A[local_row * LD + 1], A[local_row * LD + 398]);
   }
 }

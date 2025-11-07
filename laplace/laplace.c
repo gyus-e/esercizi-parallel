@@ -15,7 +15,6 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
   int nproc, myid;
   int curr_row, prev, next;
   int rows_per_proc, start_row, end_row;
-  int idx;
   MPI_Status status;
 
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -33,8 +32,8 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
     }
 
     if (myid < nproc - 1) {
-      idx = (rows_per_proc - 1) * LD;
-      MPI_Send(&A[idx], N, MPI_FLOAT, myid + 1, DAPREV_TAG, MPI_COMM_WORLD);
+      MPI_Send(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, DAPREV_TAG,
+               MPI_COMM_WORLD);
       MPI_Recv(danext, N, MPI_FLOAT, myid + 1, DANEXT_TAG, MPI_COMM_WORLD,
                &status);
     }

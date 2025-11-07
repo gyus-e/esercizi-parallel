@@ -20,6 +20,9 @@ cat machinefile
 make CC="$MPI_DIR/mpicc" -j
 
 $MPI_DIR/mpiexec -np 1 -machinefile machinefile ./laplace.out
+echo "-------------------------------------"
 $MPI_DIR/mpiexec -np 2 -machinefile machinefile ./laplace.out
+echo "-------------------------------------"
 $MPI_DIR/mpiexec -np 4 -machinefile machinefile ./laplace.out
+echo "-------------------------------------"
 $MPI_DIR/mpiexec -np 8 -machinefile machinefile ./laplace.out
