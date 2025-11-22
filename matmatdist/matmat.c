@@ -10,16 +10,18 @@
 
 void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                  int N1, int N2, int N3, int dbA, int dbB, int dbC) {
-  double *startA, *startB, *startC;
-  int ii, jj, kk;
-  for (ii = 0; ii < N1; ii += dbA) {
-    for (jj = 0; jj < N3; jj += dbB) {
-      for (kk = 0; kk < N2; kk += dbC) {
-        startA = A + ii * ldA + kk;
-        startB = B + kk * ldB + jj;
-        startC = C + ii * ldC + jj;
-        matmatijk(ldA, ldB, ldC, startA, startB, startC, N1 / dbA, N2 / dbB,
-                  N3 / dbC);
+  const unsigned int blocksA = N1 / dbA;
+  const unsigned int blocksB = N2 / dbB;
+  const unsigned int blocksC = N3 / dbC;
+  unsigned int idxA, idxB, idxC;
+  unsigned int i, j, k;
+  for (i = 0; i < blocksA; i++) {
+    for (j = 0; j < blocksC; j++) {
+      idxC = i * dbA * ldC + j * dbC;
+      for (k = 0; k < blocksB; k++) {
+        idxA = i * dbA * ldA + k * dbB;
+        idxB = k * dbB * ldB + j * dbC;
+        matmatijk(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
       }
     }
   }

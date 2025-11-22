@@ -2,10 +2,8 @@ CC = gcc
 CFLAGS = -O3
 LDFLAGS =
 
-all: main
-
-main: main.o matmat.o c_timer.o
-	$(CC) $(CFLAGS) -o main main.o matmat.o c_timer.o $(LDFLAGS)
+main.exe: main.o matmat.o c_timer.o
+	$(CC) $(CFLAGS) -o main.exe main.o matmat.o c_timer.o $(LDFLAGS)
 
 main.o: main.c c_timer.c matmat.h
 	$(CC) $(CFLAGS) -c main.c
