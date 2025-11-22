@@ -22,19 +22,11 @@ void matmatijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 
 void matmatikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                int N1, int N2, int N3) {
-  unsigned int idxA, idxB, idxC;
-  unsigned int row_A, row_B, row_C;
   unsigned int i, j, k;
   for (i = 0; i < N1; i++) {
-    row_A = i * ldA;
-    row_C = i * ldC;
     for (k = 0; k < N2; k++) {
-      idxA = row_A + k;
-      row_B = k * ldB;
       for (j = 0; j < N3; j++) {
-        idxB = row_B + j;
-        idxC = row_C + j;
-        C[idxC] += A[idxA] * B[idxB];
+        C[i * ldC + j] += A[i * ldA + k] * B[k * ldB + j];
       }
     }
   }

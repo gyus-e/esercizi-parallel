@@ -100,8 +100,6 @@ void benchmark_matmatthread_func(matmatthread_func func, const char *func_name,
   double time, gflops;
   double start, end;
 
-  printf("Num threads: %d\n", NTROW * NTCOL);
-
   start = get_cur_time();
   func(ldA, ldB, ldC, A, B, C, N1, N2, N3, dbA, dbB, dbC, NTROW, NTCOL);
   end = get_cur_time();
@@ -137,11 +135,11 @@ int main() {
   unsigned int N;
   double *A, *B, *C, *C_ref;
 
-  unsigned int NT, NTROW, NTCOL;
+  unsigned int NTROW, NTCOL;
 
   printf("Using block size L=%u and leading dimension LD=%u\n", L, LD);
 
-  for (N = 1024; N <= 2048; N += 1024) {
+  for (N = 256; N <= 2048; N += 256) {
     printf("Matrix size N=%u\n", N);
 
     A = (double *)malloc(LD * N * sizeof(double));
@@ -180,15 +178,20 @@ int main() {
                          block_function_names[i]);
     }
 
-    for (NT = 1; NT <= 4; NT *= 2) {
-      NTROW = (NT <= 2) ? 1 : 2;
-      NTCOL = NT / NTROW;
+    for (NTROW = 1; NTROW <= 2; NTROW++) {
+      for (NTCOL = NTROW; NTCOL <= NTROW * 2; NTCOL *= 2) {
+        // my machine has 6 cores
+        if (NTROW * NTCOL >= 6)
+          break;
 
-      init_matrix_zero(C, LD, N, N);
-      benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
-                                  B, C, N, N, N, L, L, L, NTROW, NTCOL);
-      verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
-                         "matmatthread");
+        printf("Num threads: %d\n", NTROW * NTCOL);
+
+        init_matrix_zero(C, LD, N, N);
+        benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
+                                    B, C, N, N, N, L, L, L, NTROW, NTCOL);
+        verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
+                           "matmatthread");
+      }
     }
 
     free(A);
