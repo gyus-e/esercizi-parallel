@@ -1,8 +1,8 @@
 #include "matmatblock.h"
 #include "matmat.h"
 
-void matmatblockikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
-                    int N1, int N2, int N3, int dbA, int dbB, int dbC) {
+void matmatblock_ikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                     int N1, int N2, int N3, int dbA, int dbB, int dbC) {
   const unsigned int num_blocks_A = N1 / dbA;
   const unsigned int num_blocks_B = N2 / dbB;
   const unsigned int num_blocks_C = N3 / dbC;
@@ -25,8 +25,8 @@ void matmatblockikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   }
 }
 
-void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
-                 int N1, int N2, int N3, int dbA, int dbB, int dbC) {
+void matmatblock_ijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                     int N1, int N2, int N3, int dbA, int dbB, int dbC) {
   const unsigned int num_blocks_A = N1 / dbA;
   const unsigned int num_blocks_B = N2 / dbB;
   const unsigned int num_blocks_C = N3 / dbC;

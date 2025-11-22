@@ -4,6 +4,7 @@
 
 #include "matmat.h"
 #include "matmatblock.h"
+#include "matmatthread.h"
 
 double get_cur_time();
 
@@ -72,16 +73,37 @@ void benchmark_matmat_func(matmat_func func, const char *func_name, int ldA,
   printf("%s: %f seconds, %f GFLOPS\n", func_name, time, gflops);
 }
 
-void benchmark_matmat_block_func(matmat_block_func func, const char *func_name,
-                                 int ldA, int ldB, int ldC, double *A,
-                                 double *B, double *C, int N1, int N2, int N3,
-                                 int dbA, int dbB, int dbC) {
+void benchmark_matmatblock_func(matmatblock_func func, const char *func_name,
+                                int ldA, int ldB, int ldC, double *A, double *B,
+                                double *C, int N1, int N2, int N3, int dbA,
+                                int dbB, int dbC) {
   const unsigned long long num_ops = 2LL * N1 * N2 * N3;
   double time, gflops;
   double start, end;
 
   start = get_cur_time();
   func(ldA, ldB, ldC, A, B, C, N1, N2, N3, dbA, dbB, dbC);
+  end = get_cur_time();
+
+  time = end - start;
+  gflops = (double)num_ops / (time * 1e9);
+
+  printf("%s: %f seconds, %f GFLOPS\n", func_name, time, gflops);
+}
+
+void benchmark_matmatthread_func(matmatthread_func func, const char *func_name,
+                                 int ldA, int ldB, int ldC, double *A,
+                                 double *B, double *C, int N1, int N2, int N3,
+                                 int dbA, int dbB, int dbC, int NTROW,
+                                 int NTCOL) {
+  const unsigned long long num_ops = 2LL * N1 * N2 * N3;
+  double time, gflops;
+  double start, end;
+
+  printf("Num threads: %d\n", NTROW * NTCOL);
+
+  start = get_cur_time();
+  func(ldA, ldB, ldC, A, B, C, N1, N2, N3, dbA, dbB, dbC, NTROW, NTCOL);
   end = get_cur_time();
 
   time = end - start;
@@ -106,17 +128,20 @@ int main() {
   char *function_names[] = {"matmatijk", "matmatikj", "matmatjik",
                             "matmatjki", "matmatkij", "matmatkji"};
 
-  matmat_block_func block_functions[] = {matmatblock, matmatblockikj};
-  char *block_function_names[] = {"matmatblockijk", "matmatblockikj"};
+  matmatblock_func block_functions[] = {matmatblock_ijk, matmatblock_ikj};
+  char *block_function_names[] = {"matmatblock_ijk", "matmatblock_ikj"};
 
-  const unsigned long L = 256;   // block size, must divide N
-  const unsigned long LD = 1792; // leading dimension, must be >= max N
+  const unsigned int L = 256; // block size, must divide N
 
+  const unsigned int LD = 2100; // leading dimension, must be >= max N
   unsigned int N;
   double *A, *B, *C, *C_ref;
-  printf("Using block size L=%lu and leading dimension LD=%lu\n", L, LD);
 
-  for (N = 256; N <= 1536; N += 256) {
+  unsigned int NT, NTROW, NTCOL;
+
+  printf("Using block size L=%u and leading dimension LD=%u\n", L, LD);
+
+  for (N = 1024; N <= 2048; N += 1024) {
     printf("Matrix size N=%u\n", N);
 
     A = (double *)malloc(LD * N * sizeof(double));
@@ -133,6 +158,9 @@ int main() {
     copy_matrix(C_ref, C, LD, N, N);
 
     for (int i = 1; i < 6; i++) {
+      // Skip all but matmatikj
+      if (i != 1)
+        continue;
       // Skip matmatjki and matmatkji for brevity
       if (i == 3 || i == 5)
         continue;
@@ -146,16 +174,28 @@ int main() {
 
     for (int i = 0; i < 2; i++) {
       init_matrix_zero(C, LD, N, N);
-      benchmark_matmat_block_func(block_functions[i], block_function_names[i],
-                                  LD, LD, LD, A, B, C, N, N, N, L, L, L);
+      benchmark_matmatblock_func(block_functions[i], block_function_names[i],
+                                 LD, LD, LD, A, B, C, N, N, N, L, L, L);
       verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
                          block_function_names[i]);
+    }
+
+    for (NT = 1; NT <= 4; NT *= 2) {
+      NTROW = (NT <= 2) ? 1 : 2;
+      NTCOL = NT / NTROW;
+
+      init_matrix_zero(C, LD, N, N);
+      benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
+                                  B, C, N, N, N, L, L, L, NTROW, NTCOL);
+      verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
+                         "matmatthread");
     }
 
     free(A);
     free(B);
     free(C);
     free(C_ref);
+
     printf("\n");
   }
   return 0;

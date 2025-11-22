@@ -1,12 +1,15 @@
 CC = gcc
 CFLAGS = -O3
-LDFLAGS =
+LDFLAGS = -fopenmp
 
-main.exe: main.o matmatblock.o matmat.o c_timer.o
-	$(CC) $(CFLAGS) -o main.exe main.o matmatblock.o matmat.o c_timer.o $(LDFLAGS)
+main.exe: main.o matmatthread.o matmatblock.o matmat.o c_timer.o
+	$(CC) $(CFLAGS) -o main.exe main.o matmatthread.o matmatblock.o matmat.o c_timer.o $(LDFLAGS)
 
-main.o: main.c c_timer.c matmatblock.h matmat.h
+main.o: main.c c_timer.c matmatthread.h matmatblock.h matmat.h
 	$(CC) $(CFLAGS) -c main.c
+
+matmatthread.o: matmatthread.c matmatthread.h matmatblock.h matmat.h
+	$(CC) $(CFLAGS) -c matmatthread.c
 
 matmatblock.o: matmatblock.c matmatblock.h matmat.h
 	$(CC) $(CFLAGS) -c matmatblock.c
