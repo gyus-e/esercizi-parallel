@@ -15,12 +15,16 @@ void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   const unsigned int blocksC = N3 / dbC;
   unsigned int idxA, idxB, idxC;
   unsigned int i, j, k;
+  unsigned int ii, jj, kk;
   for (i = 0; i < blocksA; i++) {
     for (j = 0; j < blocksC; j++) {
-      idxC = i * dbA * ldC + j * dbC;
+      ii = i * dbA;
+      jj = j * dbC;
+      idxC = ii * ldC + jj;
       for (k = 0; k < blocksB; k++) {
-        idxA = i * dbA * ldA + k * dbB;
-        idxB = k * dbB * ldB + j * dbC;
+        kk = k * dbB;
+        idxA = ii * ldA + kk;
+        idxB = kk * ldB + jj;
         matmatijk(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
       }
     }
