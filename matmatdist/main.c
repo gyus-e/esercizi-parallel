@@ -127,7 +127,11 @@ int main() {
     init_matrix_rand(B, LD, N, N);
     init_matrix_zero(C, LD, N, N);
 
-    for (int i = 0; i < 6; i++) {
+    benchmark_matmat_func(functions[0], function_names[0], LD, LD, LD, A, B, C,
+                          N, N, N);
+    copy_matrix(C_ref, C, LD, N, N);
+
+    for (int i = 1; i < 6; i++) {
       // Skip matmatjki and matmatkji for brevity
       if (i == 3 || i == 5)
         continue;
@@ -135,26 +139,17 @@ int main() {
       init_matrix_zero(C, LD, N, N);
       benchmark_matmat_func(functions[i], function_names[i], LD, LD, LD, A, B,
                             C, N, N, N);
-
-      if (i == 0) {
-        copy_matrix(C_ref, C, LD, N, N);
-      } else {
-        verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
-                           function_names[i]);
-      }
+      verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
+                         function_names[i]);
     }
 
-    init_matrix_zero(C, LD, N, N);
-    benchmark_matmat_block_func(matmatblock, "matmatblockijk", LD, LD, LD, A, B,
-                                C, N, N, N, L, L, L);
-    verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
-                       "matmatblockijk");
-
-    init_matrix_zero(C, LD, N, N);
-    benchmark_matmat_block_func(matmatblockikj, "matmatblockikj", LD, LD, LD, A,
-                                B, C, N, N, N, L, L, L);
-    verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
-                       "matmatblockikj");
+    for (int i = 0; i < 2; i++) {
+      init_matrix_zero(C, LD, N, N);
+      benchmark_matmat_block_func(block_functions[i], block_function_names[i],
+                                  LD, LD, LD, A, B, C, N, N, N, L, L, L);
+      verify_correctness(C_ref, C, LD, N, 1e-3, function_names[0],
+                         block_function_names[i]);
+    }
 
     free(A);
     free(B);
