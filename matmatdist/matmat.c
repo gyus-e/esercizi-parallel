@@ -8,23 +8,48 @@
 // for i=1..N1, j=1..N3
 // C[i][j] = C[i][j] + sum k=1..N2 (A[i][k] * B[k][j])
 
-void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
-                 int N1, int N2, int N3, int dbA, int dbB, int dbC) {
-  const unsigned int blocksA = N1 / dbA;
-  const unsigned int blocksB = N2 / dbB;
-  const unsigned int blocksC = N3 / dbC;
+void matmatblockikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                    int N1, int N2, int N3, int dbA, int dbB, int dbC) {
+  const unsigned int num_blocks_A = N1 / dbA;
+  const unsigned int num_blocks_B = N2 / dbB;
+  const unsigned int num_blocks_C = N3 / dbC;
+
+  unsigned int row, col, tmp;
   unsigned int idxA, idxB, idxC;
   unsigned int i, j, k;
-  unsigned int ii, jj, kk;
-  for (i = 0; i < blocksA; i++) {
-    for (j = 0; j < blocksC; j++) {
-      ii = i * dbA;
-      jj = j * dbC;
-      idxC = ii * ldC + jj;
-      for (k = 0; k < blocksB; k++) {
-        kk = k * dbB;
-        idxA = ii * ldA + kk;
-        idxB = kk * ldB + jj;
+  for (i = 0; i < num_blocks_A; i++) {
+    row = i * dbA;
+    for (k = 0; k < num_blocks_B; k++) {
+      tmp = k * dbB;
+      idxA = row * ldA + tmp;
+      for (j = 0; j < num_blocks_C; j++) {
+        col = j * dbC;
+        idxC = row * ldC + col;
+        idxB = tmp * ldB + col;
+        matmatikj(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
+      }
+    }
+  }
+}
+
+void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                 int N1, int N2, int N3, int dbA, int dbB, int dbC) {
+  const unsigned int num_blocks_A = N1 / dbA;
+  const unsigned int num_blocks_B = N2 / dbB;
+  const unsigned int num_blocks_C = N3 / dbC;
+
+  unsigned int row, col, tmp;
+  unsigned int idxA, idxB, idxC;
+  unsigned int i, j, k;
+  for (i = 0; i < num_blocks_A; i++) {
+    row = i * dbA;
+    for (j = 0; j < num_blocks_C; j++) {
+      col = j * dbC;
+      idxC = row * ldC + col;
+      for (k = 0; k < num_blocks_B; k++) {
+        tmp = k * dbB;
+        idxA = row * ldA + tmp;
+        idxB = tmp * ldB + col;
         matmatijk(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
       }
     }
