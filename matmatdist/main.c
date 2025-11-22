@@ -3,6 +3,7 @@
 #include <time.h>
 
 #include "matmat.h"
+#include "matmatblock.h"
 
 double get_cur_time();
 
