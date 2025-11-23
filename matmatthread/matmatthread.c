@@ -92,7 +92,7 @@ void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
         curr_subsubmatrix = kk * dbB;
         idxA = row_A * ldA + curr_subsubmatrix;
         idxB = curr_subsubmatrix * ldB + col_B;
-        matmatijk(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
+        matmatikj(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
       }
     }
   }
