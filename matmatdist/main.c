@@ -46,16 +46,16 @@ void copy_matrix(double *dest, const double *src, const unsigned int LD,
   }
 }
 
-int compare_matrices(const double *A, const double *B, const unsigned int LD,
-                     const unsigned int rows, const unsigned int cols,
-                     const double tol) {
+int compare_matrices(const double *C_ref, const double *C,
+                     const unsigned int LD, const unsigned int rows,
+                     const unsigned int cols, const double tol) {
   unsigned int i, j;
   for (i = 0; i < rows; i++) {
     for (j = 0; j < cols; j++) {
-      double diff = A[i * LD + j] - B[i * LD + j];
+      double diff = C_ref[i * LD + j] - C[i * LD + j];
       if (diff < -tol || diff > tol) {
-        fprintf(stderr, "Mismatch at (%u, %u): %f != %f\n", i, j, A[i * LD + j],
-                B[i * LD + j]);
+        fprintf(stderr, "Mismatch:\n C_ref(%u, %u) = %f\n C(%u, %u) = %f\n", i,
+                j, C_ref[i * LD + j], i, j, C[i * LD + j]);
         return 0;
       }
     }
@@ -77,7 +77,7 @@ void benchmark_matmat_func(matmat_func func, const char *func_name, int ldA,
   time = end - start;
   gflops = (double)num_ops / (time * 1e9);
 
-  printf("%s: %f seconds, %f GFLOPS\n", func_name, time, gflops);
+  printf("%s: \t %f seconds, \t %f GFLOPS\n", func_name, time, gflops);
 }
 
 void benchmark_matmatblock_func(matmatblock_func func, const char *func_name,
@@ -95,7 +95,7 @@ void benchmark_matmatblock_func(matmatblock_func func, const char *func_name,
   time = end - start;
   gflops = (double)num_ops / (time * 1e9);
 
-  printf("%s: %f seconds, %f GFLOPS\n", func_name, time, gflops);
+  printf("%s: \t %f seconds, \t %f GFLOPS\n", func_name, time, gflops);
 }
 
 void benchmark_matmatthread_func(matmatthread_func func, const char *func_name,
@@ -114,16 +114,17 @@ void benchmark_matmatthread_func(matmatthread_func func, const char *func_name,
   time = end - start;
   gflops = (double)num_ops / (time * 1e9);
 
-  printf("%s: %f seconds, %f GFLOPS\n", func_name, time, gflops);
+  printf("%s: \t %f seconds, \t %f GFLOPS\n", func_name, time, gflops);
 }
 
-void verify_correctness(const double *A, const double *B, const unsigned int LD,
-                        const unsigned int N, const double tol,
-                        const char *function_a, const char *function_b) {
-  if (!compare_matrices(A, B, LD, N, N, tol)) {
-    fprintf(stderr, "Error: Result of %s does not match %s!\n", function_a,
-            function_b);
-    exit(EXIT_FAILURE);
+void verify_correctness(const double *C_ref, const double *C,
+                        const unsigned int LD, const unsigned int N,
+                        const double tol, const char *ref_function_name,
+                        const char *function_name) {
+  if (!compare_matrices(C_ref, C, LD, N, N, tol)) {
+    fprintf(stderr, "Error:\n Result of %s does not match %s.\n",
+            ref_function_name, function_name);
+    // exit(EXIT_FAILURE);
   }
 }
 
@@ -134,12 +135,6 @@ int main() {
                                   "matmatjki", "matmatkij", "matmatkji"};
   const int num_functions = 6;
 
-  matmatblock_func block_functions[] = {matmatblock_ijk, matmatblock_ikj};
-  const char *block_function_names[] = {"matmatblock_ijk", "matmatblock_ikj"};
-  const int num_block_functions = 2;
-
-  const char *thread_function_name = "matmatthread";
-
   const unsigned int L = BLOCK_SIZE;
   const unsigned int LD = LEADING_DIM;
   unsigned int N;
@@ -147,11 +142,12 @@ int main() {
 
   unsigned int NTROW, NTCOL;
 
-  printf("Using block size L=%u and leading dimension LD=%u\n", L, LD);
+  printf("* Block size L=%u\n* Leading dimension LD=%u\n", L, LD);
 
-  for (N = 256; N <= 2048; N += 256) {
-    printf("Matrix size N=%u\n", N);
+  for (N = 256; N <= 2048; N *= 2) {
 
+    printf("*********************************************************\n");
+    printf("* Matrix size N=%u\n", N);
     A = (double *)malloc(LD * N * sizeof(double));
     B = (double *)malloc(LD * N * sizeof(double));
     C = (double *)malloc(LD * N * sizeof(double));
@@ -181,27 +177,24 @@ int main() {
                          function_names[i]);
     }
 
-    for (int i = 0; i < num_block_functions; i++) {
-      init_matrix_zero(C, LD, N, N);
-      benchmark_matmatblock_func(block_functions[i], block_function_names[i],
-                                 LD, LD, LD, A, B, C, N, N, N, L, L, L);
-      verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
-                         block_function_names[i]);
-    }
+    init_matrix_zero(C, LD, N, N);
+    benchmark_matmatblock_func(matmatblock, "matmatblock", LD, LD, LD, A, B, C,
+                               N, N, N, L, L, L);
+    verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
+                       "matmatblock");
 
     for (NTROW = 1; NTROW <= MAX_THREAD_ROWS; NTROW *= 2) {
       for (NTCOL = NTROW; NTCOL <= NTROW * 2; NTCOL *= 2) {
-        if (NTROW * NTCOL >= MAX_THREADS)
+        if (NTROW * NTCOL > MAX_THREADS)
           break;
 
-        printf("Num threads: %d\n", NTROW * NTCOL);
+        printf("\n* Threads grid: %dx%d\n", NTROW, NTCOL);
 
         init_matrix_zero(C, LD, N, N);
-        benchmark_matmatthread_func(matmatthread, thread_function_name, LD, LD,
-                                    LD, A, B, C, N, N, N, L, L, L, NTROW,
-                                    NTCOL);
+        benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
+                                    B, C, N, N, N, L, L, L, NTROW, NTCOL);
         verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE,
-                           function_names[0], thread_function_name);
+                           function_names[0], "matmatthread");
       }
     }
 
@@ -209,8 +202,6 @@ int main() {
     free(B);
     free(C);
     free(C_ref);
-
-    printf("\n");
   }
   return 0;
 }

@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -O3
-LDFLAGS = -fopenmp
+CFLAGS = -O3 -fopenmp
+LDFLAGS =
 
 main.exe: main.o matmatthread.o matmatblock.o matmat.o c_timer.o
 	$(CC) $(CFLAGS) -o main.exe main.o matmatthread.o matmatblock.o matmat.o c_timer.o $(LDFLAGS)
