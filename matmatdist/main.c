@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "matmat.h"
-#include "matmatblock.h"
 #include "matmatthread.h"
 
 #define DEFAULT_TOLERANCE 1e-3
@@ -13,7 +11,119 @@
 #define BLOCK_SIZE 256
 #define LEADING_DIM 2100
 
+typedef void (*matmat_func)(int, int, int, double *, double *, double *, int,
+                            int, int);
+
+typedef void (*matmatblock_func)(int, int, int, double *, double *, double *,
+                                 int, int, int, int, int, int);
+
+typedef void (*matmatthread_func)(int, int, int, double *, double *, double *,
+                                  int, int, int, int, int, int, int, int);
+
 double get_cur_time();
+void init_matrix_rand(double *M, const unsigned int LD, const unsigned int rows,
+                      const unsigned int cols);
+void init_matrix_zero(double *M, const unsigned int LD, const unsigned int rows,
+                      const unsigned int cols);
+void copy_matrix(double *dest, const double *src, const unsigned int LD,
+                 const unsigned int rows, const unsigned int cols);
+int compare_matrices(const double *C_ref, const double *C,
+                     const unsigned int LD, const unsigned int rows,
+                     const unsigned int cols, const double tol);
+void benchmark_matmat_func(matmat_func func, const char *func_name, int ldA,
+                           int ldB, int ldC, double *A, double *B, double *C,
+                           int N1, int N2, int N3);
+void benchmark_matmatblock_func(matmatblock_func func, const char *func_name,
+                                int ldA, int ldB, int ldC, double *A, double *B,
+                                double *C, int N1, int N2, int N3, int dbA,
+                                int dbB, int dbC);
+void benchmark_matmatthread_func(matmatthread_func func, const char *func_name,
+                                 int ldA, int ldB, int ldC, double *A,
+                                 double *B, double *C, int N1, int N2, int N3,
+                                 int dbA, int dbB, int dbC, int NTROW,
+                                 int NTCOL);
+void verify_correctness(const double *C_ref, const double *C,
+                        const unsigned int LD, const unsigned int N,
+                        const double tol, const char *ref_function_name,
+                        const char *function_name);
+
+int main() {
+  matmat_func functions[] = {matmatijk, matmatikj, matmatjik,
+                             matmatjki, matmatkij, matmatkji};
+  const char *function_names[] = {"matmatijk", "matmatikj", "matmatjik",
+                                  "matmatjki", "matmatkij", "matmatkji"};
+  const int num_functions = 6;
+
+  const unsigned int L = BLOCK_SIZE;
+  const unsigned int LD = LEADING_DIM;
+  unsigned int N;
+  double *A, *B, *C, *C_ref;
+
+  unsigned int NTROW, NTCOL;
+
+  printf("* Block size L=%u\n* Leading dimension LD=%u\n", L, LD);
+
+  for (N = 256; N <= 2048; N *= 2) {
+
+    printf("*********************************************************\n");
+    printf("* Matrix size N=%u\n", N);
+    A = (double *)malloc(LD * N * sizeof(double));
+    B = (double *)malloc(LD * N * sizeof(double));
+    C = (double *)malloc(LD * N * sizeof(double));
+    C_ref = (double *)malloc(LD * N * sizeof(double));
+
+    init_matrix_rand(A, LD, N, N);
+    init_matrix_rand(B, LD, N, N);
+    init_matrix_zero(C, LD, N, N);
+
+    benchmark_matmat_func(functions[0], function_names[0], LD, LD, LD, A, B, C,
+                          N, N, N);
+    copy_matrix(C_ref, C, LD, N, N);
+
+    for (int i = 1; i < num_functions; i++) {
+      // Skip all but matmatikj (fastest) for brevity
+      if (i != 1)
+        break;
+
+      // Skip matmatjki and matmatkji (slowest) for brevity
+      // if (i == 3 || i == 5)
+      //   continue;
+
+      init_matrix_zero(C, LD, N, N);
+      benchmark_matmat_func(functions[i], function_names[i], LD, LD, LD, A, B,
+                            C, N, N, N);
+      verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
+                         function_names[i]);
+    }
+
+    init_matrix_zero(C, LD, N, N);
+    benchmark_matmatblock_func(matmatblock, "matmatblock", LD, LD, LD, A, B, C,
+                               N, N, N, L, L, L);
+    verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
+                       "matmatblock");
+
+    for (NTROW = 1; NTROW <= MAX_THREAD_ROWS; NTROW *= 2) {
+      for (NTCOL = NTROW; NTCOL <= NTROW * 2; NTCOL *= 2) {
+        if (NTROW * NTCOL > MAX_THREADS)
+          break;
+
+        printf("\n* Threads grid: %dx%d\n", NTROW, NTCOL);
+
+        init_matrix_zero(C, LD, N, N);
+        benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
+                                    B, C, N, N, N, L, L, L, NTROW, NTCOL);
+        verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE,
+                           function_names[0], "matmatthread");
+      }
+    }
+
+    free(A);
+    free(B);
+    free(C);
+    free(C_ref);
+  }
+  return 0;
+}
 
 void init_matrix_rand(double *M, const unsigned int LD, const unsigned int rows,
                       const unsigned int cols) {
@@ -126,82 +236,4 @@ void verify_correctness(const double *C_ref, const double *C,
             ref_function_name, function_name);
     // exit(EXIT_FAILURE);
   }
-}
-
-int main() {
-  matmat_func functions[] = {matmatijk, matmatikj, matmatjik,
-                             matmatjki, matmatkij, matmatkji};
-  const char *function_names[] = {"matmatijk", "matmatikj", "matmatjik",
-                                  "matmatjki", "matmatkij", "matmatkji"};
-  const int num_functions = 6;
-
-  const unsigned int L = BLOCK_SIZE;
-  const unsigned int LD = LEADING_DIM;
-  unsigned int N;
-  double *A, *B, *C, *C_ref;
-
-  unsigned int NTROW, NTCOL;
-
-  printf("* Block size L=%u\n* Leading dimension LD=%u\n", L, LD);
-
-  for (N = 256; N <= 2048; N *= 2) {
-
-    printf("*********************************************************\n");
-    printf("* Matrix size N=%u\n", N);
-    A = (double *)malloc(LD * N * sizeof(double));
-    B = (double *)malloc(LD * N * sizeof(double));
-    C = (double *)malloc(LD * N * sizeof(double));
-    C_ref = (double *)malloc(LD * N * sizeof(double));
-
-    init_matrix_rand(A, LD, N, N);
-    init_matrix_rand(B, LD, N, N);
-    init_matrix_zero(C, LD, N, N);
-
-    benchmark_matmat_func(functions[0], function_names[0], LD, LD, LD, A, B, C,
-                          N, N, N);
-    copy_matrix(C_ref, C, LD, N, N);
-
-    for (int i = 1; i < num_functions; i++) {
-      // Skip all but matmatikj (fastest) for brevity
-      if (i != 1)
-        break;
-
-      // Skip matmatjki and matmatkji (slowest) for brevity
-      // if (i == 3 || i == 5)
-      //   continue;
-
-      init_matrix_zero(C, LD, N, N);
-      benchmark_matmat_func(functions[i], function_names[i], LD, LD, LD, A, B,
-                            C, N, N, N);
-      verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
-                         function_names[i]);
-    }
-
-    init_matrix_zero(C, LD, N, N);
-    benchmark_matmatblock_func(matmatblock, "matmatblock", LD, LD, LD, A, B, C,
-                               N, N, N, L, L, L);
-    verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
-                       "matmatblock");
-
-    for (NTROW = 1; NTROW <= MAX_THREAD_ROWS; NTROW *= 2) {
-      for (NTCOL = NTROW; NTCOL <= NTROW * 2; NTCOL *= 2) {
-        if (NTROW * NTCOL > MAX_THREADS)
-          break;
-
-        printf("\n* Threads grid: %dx%d\n", NTROW, NTCOL);
-
-        init_matrix_zero(C, LD, N, N);
-        benchmark_matmatthread_func(matmatthread, "matmatthread", LD, LD, LD, A,
-                                    B, C, N, N, N, L, L, L, NTROW, NTCOL);
-        verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE,
-                           function_names[0], "matmatthread");
-      }
-    }
-
-    free(A);
-    free(B);
-    free(C);
-    free(C_ref);
-  }
-  return 0;
 }
