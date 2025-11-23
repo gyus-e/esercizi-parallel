@@ -1,6 +1,8 @@
 #include "matmatthread.h"
 #include <omp.h>
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 /**
   In una griglia di thread NTROW x NTCOL,
   Calcolare dimensione delle sottomatrici per ogni thread.
@@ -24,20 +26,23 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                   int N1, int N2, int N3, int dbA, int dbB, int dbC, int NTROW,
                   int NTCOL) {
 
+  const unsigned int NT = NTROW * NTCOL;
   const unsigned int myN1 = N1 / NTROW;
   const unsigned int myN3 = N3 / NTCOL;
 
-  const unsigned int NT = NTROW * NTCOL;
+  unsigned int myID, IDi, IDj;
+  unsigned int start_row, start_col;
+
   omp_set_num_threads(NT);
 
-  #pragma omp parallel firstprivate(myN1, myN3)
+  #pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
   {
-    const unsigned int myID = omp_get_thread_num();
-    const unsigned int IDi = myID / NTCOL;
-    const unsigned int IDj = myID % NTCOL;
+    myID = omp_get_thread_num();
+    IDi = myID / NTCOL;
+    IDj = myID % NTCOL;
 
-    const unsigned int start_row = myN1 * IDi;
-    const unsigned int start_col = myN3 * IDj;
+    start_row = myN1 * IDi;
+    start_col = myN3 * IDj;
 
     matmatblock(ldA, ldB, ldC, &A[start_row * ldA], &B[start_col],
                 &C[start_row * ldC + start_col], myN1, N2, myN3, dbA, dbB, dbC);
@@ -67,6 +72,10 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 */
 void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                  int N1, int N2, int N3, int dbA, int dbB, int dbC) {
+  dbA = min(N1, dbA);
+  dbB = min(N2, dbB);
+  dbC = min(N3, dbC);
+
   const unsigned int num_submatrixes_A = N1 / dbA;
   const unsigned int num_submatrixes_B = N3 / dbC;
   const unsigned int num_subsubmatrixes = N2 / dbB;
@@ -83,7 +92,7 @@ void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
         curr_subsubmatrix = kk * dbB;
         idxA = row_A * ldA + curr_subsubmatrix;
         idxB = curr_subsubmatrix * ldB + col_B;
-        matmatikj(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
+        matmatijk(ldA, ldB, ldC, &A[idxA], &B[idxB], &C[idxC], dbA, dbB, dbC);
       }
     }
   }

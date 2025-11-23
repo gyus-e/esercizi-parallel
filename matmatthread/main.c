@@ -63,7 +63,7 @@ int main() {
 
   printf("* Block size L=%u\n* Leading dimension LD=%u\n", L, LD);
 
-  for (N = 256; N <= 2048; N *= 2) {
+  for (N = 128; N <= 2048; N *= 2) {
 
     printf("*********************************************************\n");
     printf("* Matrix size N=%u\n", N);
