@@ -30,7 +30,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   const unsigned int NT = NTROW * NTCOL;
   omp_set_num_threads(NT);
 
-#pragma omp parallel firstprivate(myN1, myN3)
+  #pragma omp parallel firstprivate(myN1, myN3)
   {
     const unsigned int myID = omp_get_thread_num();
     const unsigned int IDi = myID / NTCOL;
