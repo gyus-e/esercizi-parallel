@@ -1,13 +1,5 @@
 #include "matmat.h"
 
-// A: N1 x N2
-// B: N2 x N3
-// C: N1 x N3
-
-// C = C + A*B
-// for i=1..N1, j=1..N3
-// C[i][j] = C[i][j] + sum k=1..N2 (A[i][k] * B[k][j])
-
 void matmatijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                int N1, int N2, int N3) {
   unsigned int i, j, k;
