@@ -5,7 +5,7 @@
 #include "matmatthread.h"
 
 #define DEFAULT_TOLERANCE 1e-3
-#define MAX_THREADS 6
+#define MAX_THREADS 8
 #define MAX_THREAD_ROWS 2
 #define MAX_THREAD_COLS 4
 #define BLOCK_SIZE 256
@@ -53,6 +53,7 @@ int main() {
   const char *function_names[] = {"matmatijk", "matmatikj", "matmatjik",
                                   "matmatjki", "matmatkij", "matmatkji"};
   const int num_functions = 6;
+  unsigned int function_idx;
 
   const unsigned int L = BLOCK_SIZE;
   const unsigned int LD = LEADING_DIM;
@@ -80,20 +81,21 @@ int main() {
                           N, N, N);
     copy_matrix(C_ref, C, LD, N, N);
 
-    for (int i = 1; i < num_functions; i++) {
+    for (function_idx = 1; function_idx < num_functions; function_idx++) {
       // Skip all but matmatikj (fastest) for brevity
-      if (i != 1)
-        break;
+      // if (function_idx != 1)
+      //   break;
 
       // Skip matmatjki and matmatkji (slowest) for brevity
       // if (i == 3 || i == 5)
       //   continue;
 
       init_matrix_zero(C, LD, N, N);
-      benchmark_matmat_func(functions[i], function_names[i], LD, LD, LD, A, B,
-                            C, N, N, N);
+      benchmark_matmat_func(functions[function_idx],
+                            function_names[function_idx], LD, LD, LD, A, B, C,
+                            N, N, N);
       verify_correctness(C_ref, C, LD, N, DEFAULT_TOLERANCE, function_names[0],
-                         function_names[i]);
+                         function_names[function_idx]);
     }
 
     init_matrix_zero(C, LD, N, N);
