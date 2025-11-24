@@ -20,7 +20,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                   int N1, int N2, int N3, int dbA, int dbB, int dbC, int NTROW,
                   int NTCOL);
 
-/**
+/*
   In una griglia di thread NTROW x NTCOL,
   Calcolare dimensione delle sottomatrici per ogni thread.
   Il thread con identificativo (IDi, Idj)
@@ -52,7 +52,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 
   omp_set_num_threads(NT);
 
-#pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
+  #pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
   {
     myID = omp_get_thread_num();
     IDi = myID / NTCOL;
@@ -66,7 +66,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   }
 }
 
-/**
+/*
   Calcolare numero di sottomatrici della stessa dimensione dei blocchi di cache.
   Per ogni sottomatrice C(ii, jj) di dimensione dbA x dbC,
   effetturare prodotto righe per colonne di
