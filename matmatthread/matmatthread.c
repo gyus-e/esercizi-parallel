@@ -1,7 +1,24 @@
-#include "matmatthread.h"
 #include <omp.h>
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
+
+void matmatijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatjik(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatjki(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatkij(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatkji(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                 int N1, int N2, int N3, int dbA, int dbB, int dbC);
+void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                  int N1, int N2, int N3, int dbA, int dbB, int dbC, int NTROW,
+                  int NTCOL);
 
 /**
   In una griglia di thread NTROW x NTCOL,
@@ -35,7 +52,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 
   omp_set_num_threads(NT);
 
-  #pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
+#pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
   {
     myID = omp_get_thread_num();
     IDi = myID / NTCOL;

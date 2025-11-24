@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "matmatthread.h"
-
 #define DEFAULT_TOLERANCE 1e-3
 #define MAX_THREADS 8
 #define MAX_THREAD_ROWS 2
@@ -21,6 +19,25 @@ typedef void (*matmatthread_func)(int, int, int, double *, double *, double *,
                                   int, int, int, int, int, int, int, int);
 
 double get_cur_time();
+
+void matmatijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatjik(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatjki(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatkij(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatkji(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+               int N1, int N2, int N3);
+void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                 int N1, int N2, int N3, int dbA, int dbB, int dbC);
+void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
+                  int N1, int N2, int N3, int dbA, int dbB, int dbC, int NTROW,
+                  int NTCOL);
+
 void init_matrix_rand(double *M, const unsigned int LD, const unsigned int rows,
                       const unsigned int cols);
 void init_matrix_zero(double *M, const unsigned int LD, const unsigned int rows,
@@ -83,8 +100,8 @@ int main() {
 
     for (function_idx = 1; function_idx < num_functions; function_idx++) {
       // Skip all but matmatikj (fastest) for brevity
-      // if (function_idx != 1)
-      //   break;
+      if (function_idx != 1)
+        break;
 
       // Skip matmatjki and matmatkji (slowest) for brevity
       // if (i == 3 || i == 5)
