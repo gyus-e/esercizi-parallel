@@ -74,7 +74,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   sottomatrice B(0, jj) di dimensione N2 x dbC
   suddividendole a loro volta in
   sottomatrice A(ii, kk) di dimensione dbA x dbB
-  sottomatrice B(ii, kk) di dimensione dbB x dbC
+  sottomatrice B(kk, jj) di dimensione dbB x dbC
   effettuando per ognuna di esse il prodotto righe per colonne
   e sommando il risultato alla sottomatrice C(ii, jj).
 
