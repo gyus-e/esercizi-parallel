@@ -27,15 +27,11 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
   for (k = 0; k < Niter; k++) {
     if (myid > 0) {
       MPI_Send(&A[0], N, MPI_FLOAT, myid - 1, DANEXT_TAG, MPI_COMM_WORLD);
-      MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, DAPREV_TAG, MPI_COMM_WORLD,
-               &status);
     }
 
     if (myid < nproc - 1) {
       MPI_Send(&A[(rows_per_proc - 1) * LD], N, MPI_FLOAT, myid + 1, DAPREV_TAG,
                MPI_COMM_WORLD);
-      MPI_Recv(danext, N, MPI_FLOAT, myid + 1, DANEXT_TAG, MPI_COMM_WORLD,
-               &status);
     }
 
     for (i = 1; i < rows_per_proc - 1; i++) {
@@ -51,6 +47,8 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
 
     if (myid > 0) {
       start_row = 0;
+      MPI_Recv(daprev, N, MPI_FLOAT, myid - 1, DAPREV_TAG, MPI_COMM_WORLD,
+               &status);
       for (j = 1; j < N - 1; j++) {
         B[j] = 0.25 * (daprev[j] + A[LD + j] + A[j - 1] + A[j + 1]);
       }
@@ -59,6 +57,8 @@ void laplace(float *A, float *B, float *daprev, float *danext, int N, int LD,
       end_row = rows_per_proc - 1;
       curr_row = (rows_per_proc - 1) * LD;
       prev = curr_row - LD;
+      MPI_Recv(danext, N, MPI_FLOAT, myid + 1, DANEXT_TAG, MPI_COMM_WORLD,
+               &status);
       for (j = 1; j < N - 1; j++) {
         B[curr_row + j] =
             0.25 * (A[prev + j] + danext[j] + A[curr_row + (j - 1)] +
