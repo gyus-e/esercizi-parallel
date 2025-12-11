@@ -19,10 +19,8 @@ cat machinefile
 
 make CC="$MPI_DIR/mpicc" -j
 
-$MPI_DIR/mpiexec -np 1 -machinefile machinefile ./main
+$MPI_DIR/mpiexec -np 2 -machinefile machinefile ./main.exe
 echo "-------------------------------------"
-$MPI_DIR/mpiexec -np 2 -machinefile machinefile ./main
+$MPI_DIR/mpiexec -np 4 -machinefile machinefile ./main.exe
 echo "-------------------------------------"
-$MPI_DIR/mpiexec -np 4 -machinefile machinefile ./main
-echo "-------------------------------------"
-$MPI_DIR/mpiexec -np 8 -machinefile machinefile ./main
+$MPI_DIR/mpiexec -np 8 -machinefile machinefile ./main.exe

@@ -4,8 +4,8 @@ CFLAGS = -fopenmp
 LDFLAGS = -fopenmp
 LDLIBS =
 
-main: mainmatmatdist.o matmatdist.o c_timer.o
-	$(CC) $(OPTIONS) -o main mainmatmatdist.o matmatdist.o c_timer.o $(LDFLAGS) $(LDLIBS)
+main.exe: mainmatmatdist.o matmatdist.o c_timer.o
+	$(CC) $(OPTIONS) -o main.exe mainmatmatdist.o matmatdist.o c_timer.o $(LDFLAGS) $(LDLIBS)
 
 mainmatmatdist.o: mainmatmatdist.c
 	$(CC) $(OPTIONS) -c mainmatmatdist.c $(CFLAGS)

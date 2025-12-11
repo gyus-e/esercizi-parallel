@@ -1,6 +1,7 @@
 #include <omp.h>
 
-#define min(a, b) (((a) < (b)) ? (a) : (b))
+inline static int MCD(const unsigned int A, const unsigned int B);
+static int euclid(unsigned int A, unsigned int B);
 
 void matmatijk(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                int N1, int N2, int N3);
@@ -89,9 +90,9 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 */
 void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                  int N1, int N2, int N3, int dbA, int dbB, int dbC) {
-  dbA = min(N1, dbA);
-  dbB = min(N2, dbB);
-  dbC = min(N3, dbC);
+  dbA = MCD(N1, dbA);
+  dbB = MCD(N2, dbB);
+  dbC = MCD(N3, dbC);
 
   const unsigned int num_submatrixes_A = N1 / dbA;
   const unsigned int num_submatrixes_B = N3 / dbC;
@@ -185,4 +186,19 @@ void matmatkji(int ldA, int ldB, int ldC, double *A, double *B, double *C,
       }
     }
   }
+}
+
+inline static int MCD(const unsigned int A, const unsigned int B) {
+  return euclid(A, B);
+}
+
+static int euclid(unsigned int A, unsigned int B) {
+  int Q, R;
+  while (B != 0) {
+    Q = A / B;
+    R = A % B;
+    A = B;
+    B = R;
+  }
+  return A;
 }
