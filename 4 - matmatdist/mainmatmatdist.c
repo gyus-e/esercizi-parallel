@@ -102,7 +102,6 @@ for (j=0; j<Pglob/dims[1]; j++){
 printf("MAT C id %d->  %f \n",rank, C[i*lda+j]);
 } }
 
-
 // ==================================================
 // test di efficienza
 // ==================================================
@@ -121,19 +120,19 @@ if(rank==0) printf("               N         time       Gflops\n");
 for (Nglob = 2048; Nglob <= 2048*3; Nglob = Nglob+2048){
 	Ndouble = Nglob;
 
-	TROW = 1; TCOL =1 ; // test con 1 thread per processo
-	MPI_Barrier(MPI_COMM_WORLD);
-	time1=get_cur_time();
-	matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
-	time2=get_cur_time()-time1;
-	printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
+	// TROW = 1; TCOL =1 ; // test con 1 thread per processo
+	// MPI_Barrier(MPI_COMM_WORLD);
+	// time1=get_cur_time();
+	// matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
+	// time2=get_cur_time()-time1;
+	// printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
 
-	TROW = 2; TCOL =1 ; // test con 2 thread per processo
-	MPI_Barrier(MPI_COMM_WORLD);
-	time1=get_cur_time();
-	matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
-	time2=get_cur_time()-time1;
-	printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
+	// TROW = 2; TCOL =1 ; // test con 2 thread per processo
+	// MPI_Barrier(MPI_COMM_WORLD);
+	// time1=get_cur_time();
+	// matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
+	// time2=get_cur_time()-time1;
+	// printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
 
 	TROW = 2; TCOL =2 ; // test con 4 thread per processo
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -142,12 +141,12 @@ for (Nglob = 2048; Nglob <= 2048*3; Nglob = Nglob+2048){
 	time2=get_cur_time()-time1;
 	printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
 
-	TROW = 4; TCOL =2 ; // test con 4 thread per processo
-	MPI_Barrier(MPI_COMM_WORLD);
-	time1=get_cur_time();
-	matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
-	time2=get_cur_time()-time1;
-	printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
+	// TROW = 4; TCOL =2 ; // test con 8 thread per processo
+	// MPI_Barrier(MPI_COMM_WORLD);
+	// time1=get_cur_time();
+	// matmatdist(GridCom, lda, lda, lda, A, B, C, Nglob, Nglob, Nglob, 256, 256, 256, TROW, TCOL);
+	// time2=get_cur_time()-time1;
+	// printf(" proc = %d:   %4d   %4d   %e  %f \n",rank, Nglob, TROW*TCOL, time2,  2*Ndouble*Ndouble*Ndouble/time2/1.e9);
 
 }
 

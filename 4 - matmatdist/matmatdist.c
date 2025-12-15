@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <omp.h>
 #include <stdlib.h>
+#include <string.h>
 
 inline static int mcm(const unsigned int A, const unsigned int B);
 inline static int MCD(const unsigned int A, const unsigned int B);
@@ -42,29 +43,26 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
   double *A_block = (double *)malloc(sizeof(double) * A_block_dim);
   double *B_block = (double *)malloc(sizeof(double) * B_block_dim);
 
-  int k, c, r, i, j;
+  int k, c, r, i;
 
   for (k = 0; k < grid_dims_mcm; k++) {
-    c = k % grid_dims[1];
     r = k % grid_dims[0];
-
-    if (my_coords[1] == c) {
-      for (i = 0; i < blockN1; i++) {
-        for (j = 0; j < blockN2; j++) {
-          A_block[i * blockN2 + j] = A[i * LDA + j];
-        }
-      }
-    }
-    MPI_Bcast(A_block, A_block_dim, MPI_DOUBLE, c, rowcom);
+    c = k % grid_dims[1];
 
     if (my_coords[0] == r) {
       for (int i = 0; i < blockN2; i++) {
-        for (int j = 0; j < blockN3; j++) {
-          B_block[i * blockN3 + j] = B[i * LDB + j];
-        }
+        memcpy(&B_block[i * blockN3], &B[i * LDB], sizeof(double) * blockN3);
       }
     }
+    
+    if (my_coords[1] == c) {
+      for (i = 0; i < blockN1; i++) {
+        memcpy(&A_block[i * blockN2], &A[i * LDA], sizeof(double) * blockN2);
+      }
+    }
+
     MPI_Bcast(B_block, B_block_dim, MPI_DOUBLE, r, colcom);
+    MPI_Bcast(A_block, A_block_dim, MPI_DOUBLE, c, rowcom);
 
     matmatthread(blockN2, blockN3, LDC, A_block, B_block, C,
                  blockN1, blockN2, blockN3, DB1, DB2, DB3, NTrow, NTcol);
