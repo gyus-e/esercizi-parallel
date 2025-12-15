@@ -1,5 +1,5 @@
 CC = mpicc
-OPTIONS = -O3
+OPTIONS = -O3 -std=gnu90 -Wall -Wextra
 CFLAGS = -fopenmp
 LDFLAGS = -fopenmp
 LDLIBS =

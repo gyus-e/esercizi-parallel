@@ -50,7 +50,7 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
     c = k % grid_dims[1];
 
     if (my_coords[0] == r) {
-      for (int i = 0; i < blockN2; i++) {
+      for (i = 0; i < blockN2; i++) {
         memcpy(&B_block[i * blockN3], &B[i * LDB], sizeof(double) * blockN3);
       }
     }
@@ -147,9 +147,8 @@ inline static int MCD(const unsigned int A, const unsigned int B) {
 }
 
 static int euclid(unsigned int A, unsigned int B) {
-  int Q, R;
+  int R;
   while (B != 0) {
-    Q = A / B;
     R = A % B;
     A = B;
     B = R;
