@@ -20,4 +20,4 @@ cat machinefile
 make CC="$MPI_DIR/mpicc" -j
 
 echo "-------------------------------------"
-$MPI_DIR/mpiexec -np 4 -machinefile machinefile ./main.exe
+$MPI_DIR/mpiexec -np 4 -machinefile machinefile $PBS_O_WORKDIR/main.exe
