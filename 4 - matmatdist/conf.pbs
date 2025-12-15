@@ -17,7 +17,8 @@ NCPU=`wc -l < machinefile`
 echo "Il job è in esecuzione sugli $NCPU nodi:"
 cat machinefile
 
-make -j
+make CC="$MPI_DIR/mpicc" -j
+test -f main.out || { echo "Compilazione fallita"; exit 1; }
 
 echo "-------------------------------------"
-$MPI_DIR/mpiexec -np 4 -machinefile machinefile $PBS_O_WORKDIR/main.exe
+$MPI_DIR/mpiexec -np 4 -machinefile machinefile main.out

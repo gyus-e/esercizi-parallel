@@ -1,11 +1,11 @@
 CC = mpicc
-OPTIONS = -O3 -std=gnu90 -Wall -Wextra
+OPTIONS = -O3
 CFLAGS = -fopenmp
 LDFLAGS = -fopenmp
 LDLIBS =
 
-main.exe: mainmatmatdist.o matmatdist.o c_timer.o
-	$(CC) $(OPTIONS) -o main.exe mainmatmatdist.o matmatdist.o c_timer.o $(LDFLAGS) $(LDLIBS)
+main.out: mainmatmatdist.o matmatdist.o c_timer.o
+	$(CC) $(OPTIONS) -o main.out mainmatmatdist.o matmatdist.o c_timer.o $(LDFLAGS) $(LDLIBS)
 
 mainmatmatdist.o: mainmatmatdist.c
 	$(CC) $(OPTIONS) -c mainmatmatdist.c $(CFLAGS)
