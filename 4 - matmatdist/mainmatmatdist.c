@@ -28,7 +28,7 @@ MPI_Comm_size(MPI_COMM_WORLD,&size);
 // ATTENZIONE: il prodotto dims[0]*dims[1] deve essere uguale al 
 // numero di processi lanciati da mpirun nel file.pbs
 //
-dims[0] = 1; dims[1] = 2;
+dims[0] = 2; dims[1] = 2;
 period[0] = 1; period[1] = 1;
 MPI_Cart_create(MPI_COMM_WORLD, 2, dims, period, 0, &GridCom);
 

@@ -2,8 +2,6 @@
 #include <omp.h>
 #include <stdlib.h>
 
-static void copy_submatrix(double *src, double *dst, int rows, int cols,
-                           int ldsrc, int lddst);
 inline static int mcm(const unsigned int A, const unsigned int B);
 inline static int MCD(const unsigned int A, const unsigned int B);
 static int euclid(unsigned int A, unsigned int B);
@@ -19,119 +17,63 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
                 double *B, double *C, int N1, int N2, int N3, int DB1, int DB2,
                 int DB3, int NTrow, int NTcol);
 
-/*
-  Moltiplicazione distribuita di matrici in una griglia di processi K1 x K3.
-  K2 è il minimo comune multiplo di K1 e K3.
-
-  La matrice A viene suddivisa in K1 x K2 blocchi di dimensione (N1/K1) x (N2/K2), 
-  la matrice B viene suddivisa in K2 x K3 blocchi di dimensione (N2/K2) x (N3/K3), 
-  la matrice C viene suddivisa in K1 x K3 blocchi di dimensione (N1/K1) x (N3/K3).
-
-  Le sottomatrici vengono distribuite ai processi della griglia in modo ciclico.
-  Al processo con coordinate (i, j) vengono assegnati i seguenti blocchi:
-  - tutti i blocchi A(i, k) dove k % K3 == j;
-  - tutti i blocchi B(k, j) dove k % K1 == i;
-  - il blocco C(i, j).
-
-  Per calcolare il blocco C(i, j), il processo (i, j) ha bisogno di tutti
-  i blocchi A(i, k) e B(k, j), per k = 0, ..., K2-1. Per ogni k,
-  - il processo che possiede il blocco A(i, k) lo invia a tutti i processi
-    della riga x della griglia,
-  - il processo che possiede il blocco B(k, j) lo invia a tutti i processi
-    della colonna y della griglia. 
-  - Ogni processo calcola il prodotto dei blocchi ricevuti 
-    e somma il risultato al proprio blocco C(i, j).
-
-  Gridcom - Comunicatore della griglia di processi
-  LDA, LDB, LDC - Leading dimension delle tre matrici
-  A, B, C - Puntatori al primo elemento delle tre matrici
-  N1 - Numero di righe di A e C
-  N2 - Numero di colonne di A e righe di B
-  N3 - Numero di colonne di B e C
-  DB1 - Righe di A e C contenute in un blocco di cache
-  DB2 - Colonne di A e righe di B contenute in un blocco di cache
-  DB3 - Colonne di B e C contenute in un blocco di cache
-  NTrow - Numero di righe della griglia di thread
-  NTcol - Numero di colonne della griglia di thread
-*/
 void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
                 double *B, double *C, int N1, int N2, int N3, int DB1, int DB2,
                 int DB3, int NTrow, int NTcol) {
-  int myid, NP, dims[2], periods[2], mycoords[2];
+  int my_id, grid_dims[2], grid_periods[2], my_coords[2];
+  const int row_dir[2] = {0, 1};
+  const int col_dir[2] = {1, 0};
   MPI_Comm rowcom, colcom;
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-  MPI_Comm_size(MPI_COMM_WORLD, &NP);
-  MPI_Cart_get(Gridcom, 2, dims, periods, mycoords);
-  MPI_Cart_sub(Gridcom, (int[]){0, 1}, &rowcom);
-  MPI_Cart_sub(Gridcom, (int[]){1, 0}, &colcom);
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
+  MPI_Cart_get(Gridcom, 2, grid_dims, grid_periods, my_coords);
+  MPI_Cart_sub(Gridcom, row_dir, &rowcom);
+  MPI_Cart_sub(Gridcom, col_dir, &colcom);
 
-  // dimensioni della griglia di processi
-  const unsigned int K1 = dims[0];
-  const unsigned int K2 = mcm(dims[0], dims[1]);
-  const unsigned int K3 = dims[1];
+  const unsigned int grid_dims_mcm = mcm(grid_dims[0], grid_dims[1]);
 
-  // dimensioni dei blocchi di matrici
-  const unsigned int localN1 = N1 / K1;
-  const unsigned int localN2 = N2 / K2;
-  const unsigned int localN3 = N3 / K3;
+  const unsigned int blockN1 = N1 / grid_dims[0];
+  const unsigned int blockN2 = N2 / grid_dims_mcm;
+  const unsigned int blockN3 = N3 / grid_dims[1];
 
-  const unsigned int A_block_dim = localN1 * localN2;
-  const unsigned int B_block_dim = localN2 * localN3;
+  const unsigned int A_block_dim = blockN1 * blockN2;
+  const unsigned int B_block_dim = blockN2 * blockN3;
 
   double *A_block = (double *)malloc(sizeof(double) * A_block_dim);
   double *B_block = (double *)malloc(sizeof(double) * B_block_dim);
 
-  unsigned int row_sender_id, col_sender_id;
-  unsigned int i, k, j;
-  unsigned int itr;
-  for (itr = 0; itr < K2; itr++) {
-    row_sender_id = itr % dims[0];
-    col_sender_id = itr % dims[1];
+  int k, c, r, i, j;
 
-    i = row_sender_id * localN1;
-    k = itr * localN2;
-    j = col_sender_id * localN3;
+  for (k = 0; k < grid_dims_mcm; k++) {
+    c = k % grid_dims[1];
+    r = k % grid_dims[0];
 
-    if (mycoords[0] == row_sender_id) {
-      copy_submatrix(&A[i * LDA + k], A_block, localN1, localN2,
-                     LDA, localN2);
+    if (my_coords[1] == c) {
+      for (i = 0; i < blockN1; i++) {
+        for (j = 0; j < blockN2; j++) {
+          A_block[i * blockN2 + j] = A[i * LDA + j];
+        }
+      }
     }
-    MPI_Bcast(A_block, A_block_dim, MPI_DOUBLE, col_sender_id, rowcom);
+    MPI_Bcast(A_block, A_block_dim, MPI_DOUBLE, c, rowcom);
 
-    if (mycoords[1] == col_sender_id) {
-      copy_submatrix(&B[k * LDB + j], B_block, localN2, localN3,
-                     LDB, localN3);
+    if (my_coords[0] == r) {
+      for (int i = 0; i < blockN2; i++) {
+        for (int j = 0; j < blockN3; j++) {
+          B_block[i * blockN3 + j] = B[i * LDB + j];
+        }
+      }
     }
-    MPI_Bcast(B_block, B_block_dim, MPI_DOUBLE, row_sender_id, colcom);
+    MPI_Bcast(B_block, B_block_dim, MPI_DOUBLE, r, colcom);
 
-    matmatthread(localN2, localN3, LDC, A_block, B_block, C, localN1, localN2, localN3, DB1, DB2,
-                 DB3, NTrow, NTcol);
+    matmatthread(blockN2, blockN3, LDC, A_block, B_block, C,
+                 blockN1, blockN2, blockN3, DB1, DB2, DB3, NTrow, NTcol);
   }
 
   free(A_block);
   free(B_block);
 }
 
-/*
-  Moltiplicazione parallela di matrici in una griglia di thread NTROW x NTCOL,
-  Calcola le dimensioni delle sottomatrici da assegnare a ogni thread.
-  Il thread con identificativo (IDi, IDj)
-  calcola sottomatrice C(IDi, IDj) di dimensione myN1 x myN3
-  prendendo sottomatrice A(IDi, 0) di dimensione myN1 x N2
-  e sottomatrice di B(0, IDj) di dimensione N2 x myN3.
-
-  ldA, ldB, ldC - Leading dimension delle tre matrici
-  A, B, C - Puntatori al primo elemento delle tre matrici
-  N1 - Numero di righe di A e C
-  N2 - Numero di colonne di A e righe di B
-  N3 - Numero di colonne di B e C
-  dbA - Righe di A e C contenute in un blocco di cache
-  dbB - Colonne di A e righe di B contenute in un blocco di cache
-  dbC - Colonne di B e C contenute in un blocco di cache
-  NTROW - Numero di righe della griglia di thread
-  NTCOL - Numero di colonne della griglia di thread
-*/
 void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                   int N1, int N2, int N3, int dbA, int dbB, int dbC, int NTROW,
                   int NTCOL) {
@@ -158,27 +100,6 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
   }
 }
 
-/*
-  Calcola il numero di sottomatrici della stessa dimensione dei blocchi di
-  cache. Per ogni sottomatrice C(ii, jj) di dimensione dbA x dbC, effettua il
-  prodotto righe per colonne di:
-  - sottomatrice A(ii, 0) di dimensione dbA x N2,
-  - sottomatrice B(0, jj) di dimensione N2 x dbC,
-  suddividendole a loro volta in:
-  - sottomatrice A(ii, kk) di dimensione dbA x dbB,
-  - sottomatrice B(kk, jj) di dimensione dbB x dbC,
-  effettuando per ognuna di esse il prodotto righe per colonne
-  e sommando il risultato alla sottomatrice C(ii, jj).
-
-  ldA, ldB, ldC - Leading dimension delle tre matrici
-  A, B, C - Puntatori al primo elemento delle tre matrici
-  N1 - Numero di righe di A e C
-  N2 - Numero di colonne di A e righe di B
-  N3 - Numero di colonne di B e C
-  dbA - Righe di A e C contenute in un blocco di cache
-  dbB - Colonne di A e righe di B contenute in un blocco di cache
-  dbC - Colonne di B e C contenute in un blocco di cache
-*/
 void matmatblock(int ldA, int ldB, int ldC, double *A, double *B, double *C,
                  int N1, int N2, int N3, int dbA, int dbB, int dbC) {
   dbA = MCD(N1, dbA);
@@ -215,16 +136,6 @@ void matmatikj(int ldA, int ldB, int ldC, double *A, double *B, double *C,
       for (j = 0; j < N3; j++) {
         C[i * ldC + j] += A[i * ldA + k] * B[k * ldB + j];
       }
-    }
-  }
-}
-
-static void copy_submatrix(double *src, double *dst, int Nrows, int Ncols,
-                           int ldsrc, int lddst) {
-  unsigned int i, j;
-  for (i = 0; i < Nrows; i++) {
-    for (j = 0; j < Ncols; j++) {
-      dst[i * lddst + j] = src[i * ldsrc + j];
     }
   }
 }

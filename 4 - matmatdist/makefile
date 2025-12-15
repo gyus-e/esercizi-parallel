@@ -17,4 +17,4 @@ c_timer.o: c_timer.c
 	$(CC) $(OPTIONS) -c c_timer.c $(CFLAGS)
 
 clean:
-	rm -f *.out *.o
+	rm -f *.exe *.out *.o
