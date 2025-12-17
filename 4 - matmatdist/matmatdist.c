@@ -43,6 +43,7 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
   double *A_block = (double *)malloc(sizeof(double) * A_block_dim);
   double *B_block = (double *)malloc(sizeof(double) * B_block_dim);
 
+  int A_start_col, B_start_row;
   int k, c, r, i;
 
   for (k = 0; k < grid_dims_mcm; k++) {
@@ -50,27 +51,31 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
     c = k % grid_dims[1];
 
     if (my_coords[0] == r) {
+      B_start_row = (k / grid_dims[0]) * blockN2;
       for (i = 0; i < blockN2; i++) {
-        memcpy(&B_block[i * blockN3], &B[i * LDB], sizeof(double) * blockN3);
+        memcpy(&B_block[i * blockN3], &B[((B_start_row + i) * LDB)],
+               sizeof(double) * blockN3);
       }
     }
-    
+
     if (my_coords[1] == c) {
+      A_start_col = ((k / grid_dims[1]) * blockN2);
       for (i = 0; i < blockN1; i++) {
-        memcpy(&A_block[i * blockN2], &A[i * LDA], sizeof(double) * blockN2);
+        memcpy(&A_block[i * blockN2], &A[i * LDA + A_start_col],
+               sizeof(double) * blockN2);
       }
     }
 
     MPI_Bcast(B_block, B_block_dim, MPI_DOUBLE, r, colcom);
     MPI_Bcast(A_block, A_block_dim, MPI_DOUBLE, c, rowcom);
 
-    matmatthread(blockN2, blockN3, LDC, A_block, B_block, C,
-                 blockN1, blockN2, blockN3, DB1, DB2, DB3, NTrow, NTcol);
+    matmatthread(blockN2, blockN3, LDC, A_block, B_block, C, blockN1, blockN2,
+                 blockN3, DB1, DB2, DB3, NTrow, NTcol);
   }
 
   free(A_block);
   free(B_block);
-  
+
   MPI_Comm_free(&rowcom);
   MPI_Comm_free(&colcom);
 }
@@ -87,7 +92,7 @@ void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
 
   omp_set_num_threads(NT);
 
-  #pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
+#pragma omp parallel private(myID, IDi, IDj, start_row, start_col)
   {
     myID = omp_get_thread_num();
     IDi = myID / NTCOL;
