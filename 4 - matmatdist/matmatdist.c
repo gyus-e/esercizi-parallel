@@ -70,6 +70,9 @@ void matmatdist(MPI_Comm Gridcom, int LDA, int LDB, int LDC, double *A,
 
   free(A_block);
   free(B_block);
+  
+  MPI_Comm_free(&rowcom);
+  MPI_Comm_free(&colcom);
 }
 
 void matmatthread(int ldA, int ldB, int ldC, double *A, double *B, double *C,
